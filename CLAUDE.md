@@ -97,3 +97,36 @@ The app maintains intelligent context for each user:
 - Minimal data collection
 - Easy export/deletion capabilities
 - All voice processing uses iOS native speech recognition (stays on device)
+
+## Development Methodology
+
+**Current Phase: Clickable Prototype with Mock Data**
+- Building complete UI/UX flow before any real functionality
+- All screens connected with proper navigation
+- Realistic mock data throughout
+- Focus on user experience validation
+
+**Systematic Approach:**
+1. **Foundation First**: Get basic app building and running
+2. **UI/UX Validation**: Complete clickable prototype with mock data
+3. **Incremental Functionality**: Add real features one layer at a time
+4. **Phase-by-Phase**: Follow PRD phases systematically
+
+**Key Principles:**
+- Never jump ahead to complex features before foundation is solid
+- Build UI first, add functionality second
+- Test each phase thoroughly before moving forward
+- "Can my mom use this?" simplicity test throughout
+- Commit working states frequently
+
+**Mock Data Strategy:**
+- Mock business: "Sarah's Hair Studio" in "Austin, TX"
+- Mock contacts with realistic names and partial information
+- Mock voice transcriptions from PRD examples
+- Mock tasks in various states (pending, approved, etc.)
+- Mock metrics and delivery results
+
+**Current Screen Structure:**
+- Onboarding: Welcome → Business Setup → Permissions → Tutorial
+- Main App: Main Screen → Task Review Flow → Dashboard → Settings
+- Navigation: Tab-based with modal flows for complex interactions

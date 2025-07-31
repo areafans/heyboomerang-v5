@@ -8,8 +8,17 @@
 import SwiftUI
 
 struct ContentView: View {
+    @State private var showOnboarding = true // Set to true for prototype - normally would check user defaults
+    
     var body: some View {
-        MainView()
+        Group {
+            if showOnboarding {
+                OnboardingContainerView(showOnboarding: $showOnboarding)
+            } else {
+                MainView()
+            }
+        }
+        .animation(.easeInOut, value: showOnboarding)
     }
 }
 
