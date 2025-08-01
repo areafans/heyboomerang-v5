@@ -2,6 +2,16 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🚨 CRITICAL: Always Use the Project Todo List
+
+**BEFORE starting any work:**
+1. **Read the current Project Todo List below** to understand exactly where we are
+2. **Update todo status** as you complete tasks (✅ = done, 🎯 = in progress, ❌ = not started)
+3. **Add new todos** when you discover additional work needed
+4. **Commit todo updates** to preserve progress across context resets
+
+**This todo list is our persistent memory system - treat it as the single source of truth for project status.**
+
 ## Project Overview
 
 Boomerang is a voice-first iOS app for small service businesses. Users capture voice notes throughout their workday, which are automatically processed into actionable tasks. The app handles automated follow-ups, reminders, and campaigns after user verification.
@@ -97,6 +107,88 @@ The app maintains intelligent context for each user:
 - Minimal data collection
 - Easy export/deletion capabilities
 - All voice processing uses iOS native speech recognition (stays on device)
+
+## 📋 PROJECT TODO LIST
+
+### **PHASE 0: FOUNDATION & PROTOTYPE** 
+✅ Set up Xcode project with proper structure  
+✅ Create core data models (User, Contact, Capture, Task)  
+✅ Build basic UI structure with SwiftUI  
+✅ Implement mock VoiceCaptureService for testing  
+✅ Create complete 4-screen onboarding flow  
+✅ Design 5-tab navigation structure (Summary|Tasks|Capture|Dashboard|Profile)  
+✅ Polish UI with SF Symbols, animations, and consistent design  
+✅ Add pull-to-refresh and haptic feedback  
+✅ Fix all compilation errors and warnings  
+✅ Create comprehensive CLAUDE.md documentation  
+
+### **PHASE 1: COMPLETE TASK REVIEW FLOW (CURRENT PRIORITY)**
+❌ **1.1** Implement PRD-specified 5-step task review flow:
+   - ❌ Group Summary screen (Follow-ups (5) → Reminders (3) → Notes (4))
+   - ❌ Contact Disambiguation ("Mary Johns" vs "Mary Johnson" selection)
+   - ❌ Contact Details Entry (add phone/email forms)
+   - ❌ Timing Selection (Tomorrow AM, Tomorrow PM, In 2 days)
+   - ❌ Message Preview & Final Approval
+❌ **1.2** Add swipe actions on task cards (approve/skip)  
+❌ **1.3** Implement bulk approval functionality  
+❌ **1.4** Add proper navigation between review steps  
+❌ **1.5** Handle edge cases (no tasks, network errors)  
+
+### **PHASE 2: REAL VOICE CAPTURE**
+❌ **2.1** Replace mock VoiceCaptureService with real iOS Speech framework  
+❌ **2.2** Add proper microphone and speech recognition permissions  
+❌ **2.3** Implement actual speech-to-text with error handling  
+❌ **2.4** Add audio level visualization during recording  
+❌ **2.5** Handle speech recognition confidence and errors  
+❌ **2.6** Test voice capture accuracy with real audio  
+
+### **PHASE 3: ENHANCED UX POLISH**
+❌ **3.1** Improve empty states across all screens  
+❌ **3.2** Add loading states for future API integration  
+❌ **3.3** Implement better contact management UI  
+❌ **3.4** Add user settings and preferences  
+❌ **3.5** Optimize performance and memory usage  
+❌ **3.6** Add accessibility support (VoiceOver, Dynamic Type)  
+
+### **PHASE 4: BACKEND FOUNDATION** 
+❌ **4.1** Set up Vercel + Next.js API structure  
+❌ **4.2** Configure Supabase database with PRD schema  
+❌ **4.3** Implement authentication (magic link)  
+❌ **4.4** Create API endpoints matching current mock data  
+❌ **4.5** Add user context and learning system foundation  
+
+### **PHASE 5: API INTEGRATION**
+❌ **5.1** Connect iOS app to real backend APIs  
+❌ **5.2** Replace all mock data with database calls  
+❌ **5.3** Implement proper error handling and retry logic  
+❌ **5.4** Add offline support and data synchronization  
+❌ **5.5** Test complete end-to-end flow  
+
+### **PHASE 6: AI & MESSAGE PROCESSING**
+❌ **6.1** Integrate OpenAI API for task generation  
+❌ **6.2** Implement user context system for personalized messages  
+❌ **6.3** Add contact matching and disambiguation logic  
+❌ **6.4** Create message generation with business context  
+❌ **6.5** Add learning system (store approved messages)  
+
+### **PHASE 7: MESSAGE DELIVERY**
+❌ **7.1** Integrate Twilio for SMS delivery  
+❌ **7.2** Integrate SendGrid for email delivery  
+❌ **7.3** Add delivery tracking and status updates  
+❌ **7.4** Implement push notifications for delivery results  
+❌ **7.5** Add retry logic for failed deliveries  
+
+### **PHASE 8: PRODUCTION READY**
+❌ **8.1** Add comprehensive error logging  
+❌ **8.2** Implement analytics and usage tracking  
+❌ **8.3** Add subscription and payment integration  
+❌ **8.4** Performance optimization and testing  
+❌ **8.5** App Store preparation and submission  
+
+### **IMMEDIATE NEXT STEPS** (Priority Order)
+1. 🎯 **Start Phase 1.1** - Implement the 5-step task review flow (most critical UX gap)
+2. Then **Phase 2.1-2.3** - Add real voice capture (core functionality)
+3. Then **Phase 3** polish for user testing readiness
 
 ## Development Methodology
 
