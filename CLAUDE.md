@@ -120,9 +120,9 @@ The app maintains intelligent context for each user:
 - Commit working states frequently
 
 **Mock Data Strategy:**
-- Mock business: "Sarah's Hair Studio" in "Austin, TX"
+- Mock business: "Mike's Construction" - general contracting company
 - Mock contacts with realistic names and partial information
-- Mock voice transcriptions from PRD examples
+- Mock voice transcriptions from PRD examples (contractor-focused)
 - Mock tasks in various states (pending, approved, etc.)
 - Mock metrics and delivery results
 

@@ -9,25 +9,10 @@ import SwiftUI
 
 struct BusinessSetupView: View {
     @Binding var isCompleted: Bool
+    @State private var userName = ""
     @State private var businessName = ""
-    @State private var businessType = ""
-    @State private var city = ""
-    @State private var state = ""
+    @State private var businessDescription = ""
     @State private var currentStep = 0
-    
-    private let businessTypes = [
-        "Hair Salon", "Barbershop", "Spa & Wellness", "Personal Training",
-        "Home Services", "Contractor", "Restaurant", "Dental Practice",
-        "Auto Shop", "Consulting", "Other"
-    ]
-    
-    private let states = [
-        "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA",
-        "HI", "ID", "IL", "IN", "IA", "KS", "KY", "LA", "ME", "MD",
-        "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
-        "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC",
-        "SD", "TN", "TX", "UT", "VT", "VA", "WA", "WV", "WI", "WY"
-    ]
     
     var body: some View {
         VStack(spacing: 30) {
@@ -61,11 +46,11 @@ struct BusinessSetupView: View {
             Group {
                 switch currentStep {
                 case 0:
-                    businessNameStep
+                    userNameStep
                 case 1:
-                    businessTypeStep
+                    businessNameStep
                 case 2:
-                    locationStep
+                    businessDescriptionStep
                 default:
                     EmptyView()
                 }
@@ -105,6 +90,25 @@ struct BusinessSetupView: View {
         .padding(.top, 20)
     }
     
+    private var userNameStep: some View {
+        VStack(spacing: 24) {
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 60))
+                .foregroundColor(.blue)
+            
+            VStack(spacing: 16) {
+                Text("What's your name?")
+                    .font(.title2)
+                    .fontWeight(.semibold)
+                
+                TextField("Your name", text: $userName)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.title3)
+                    .padding(.horizontal, 32)
+            }
+        }
+    }
+    
     private var businessNameStep: some View {
         VStack(spacing: 24) {
             Image(systemName: "storefront.fill")
@@ -112,9 +116,10 @@ struct BusinessSetupView: View {
                 .foregroundColor(.blue)
             
             VStack(spacing: 16) {
-                Text("What's your business name?")
+                Text("What's the name of your business, \(userName)?")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
                 
                 TextField("Business name", text: $businessName)
                     .textFieldStyle(.roundedBorder)
@@ -124,85 +129,37 @@ struct BusinessSetupView: View {
         }
     }
     
-    private var businessTypeStep: some View {
+    private var businessDescriptionStep: some View {
         VStack(spacing: 24) {
-            Image(systemName: "person.crop.circle.fill")
+            Image(systemName: "text.bubble.fill")
                 .font(.system(size: 60))
                 .foregroundColor(.blue)
             
             VStack(spacing: 16) {
-                Text("What type of business?")
+                Text("Will you describe \(businessName)?")
                     .font(.title2)
                     .fontWeight(.semibold)
+                    .multilineTextAlignment(.center)
                 
-                Menu {
-                    ForEach(businessTypes, id: \.self) { type in
-                        Button(type) {
-                            businessType = type
-                        }
-                    }
-                } label: {
-                    HStack {
-                        Text(businessType.isEmpty ? "Select business type" : businessType)
-                            .foregroundColor(businessType.isEmpty ? .secondary : .primary)
-                        Spacer()
-                        Image(systemName: "chevron.down")
-                            .foregroundColor(.secondary)
-                    }
-                    .padding()
-                    .background(Color(.systemGray6))
-                    .cornerRadius(8)
+                Text("Tell us what you do - we'll use this to personalize your experience")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
                     .padding(.horizontal, 32)
-                }
-            }
-        }
-    }
-    
-    private var locationStep: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "location.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-            
-            VStack(spacing: 16) {
-                Text("Where are you located?")
-                    .font(.title2)
-                    .fontWeight(.semibold)
                 
-                VStack(spacing: 12) {
-                    TextField("City", text: $city)
-                        .textFieldStyle(.roundedBorder)
-                        .padding(.horizontal, 32)
-                    
-                    Menu {
-                        ForEach(states, id: \.self) { stateCode in
-                            Button(stateCode) {
-                                state = stateCode
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Text(state.isEmpty ? "State" : state)
-                                .foregroundColor(state.isEmpty ? .secondary : .primary)
-                            Spacer()
-                            Image(systemName: "chevron.down")
-                                .foregroundColor(.secondary)
-                        }
-                        .padding()
-                        .background(Color(.systemGray6))
-                        .cornerRadius(8)
-                        .padding(.horizontal, 32)
-                    }
-                }
+                TextField("e.g., We're a general contracting company specializing in home renovations and kitchen remodels", text: $businessDescription, axis: .vertical)
+                    .textFieldStyle(.roundedBorder)
+                    .lineLimit(3...6)
+                    .padding(.horizontal, 32)
             }
         }
     }
     
     private var canContinue: Bool {
         switch currentStep {
-        case 0: return !businessName.isEmpty
-        case 1: return !businessType.isEmpty
-        case 2: return !city.isEmpty && !state.isEmpty
+        case 0: return !userName.isEmpty
+        case 1: return !businessName.isEmpty
+        case 2: return !businessDescription.isEmpty
         default: return false
         }
     }
@@ -210,9 +167,9 @@ struct BusinessSetupView: View {
     private func completeSetup() {
         // Mock saving business data
         print("Business Setup Complete:")
-        print("Name: \(businessName)")
-        print("Type: \(businessType)")
-        print("Location: \(city), \(state)")
+        print("User: \(userName)")
+        print("Business: \(businessName)")
+        print("Description: \(businessDescription)")
         
         withAnimation {
             isCompleted = true

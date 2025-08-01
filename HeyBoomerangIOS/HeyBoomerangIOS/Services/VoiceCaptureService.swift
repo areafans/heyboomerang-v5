@@ -13,11 +13,11 @@ class VoiceCaptureService: ObservableObject {
     
     private var recordingTimer: Timer?
     private let mockTranscriptions = [
-        "Just finished with Mary Johnson",
-        "Need to order more shampoo for next week",
-        "Having a great day with clients",
-        "Sarah Williams loved her new haircut",
-        "Remember to follow up with the new client tomorrow"
+        "Just finished the kitchen demo at the Johnson house",
+        "Need to order drywall for the Williams project next week",
+        "Having a great day on the renovation sites",
+        "The Smiths are really happy with their new bathroom",
+        "Remember to follow up with the Miller family about their deck project"
     ]
     
     func startRecording() {

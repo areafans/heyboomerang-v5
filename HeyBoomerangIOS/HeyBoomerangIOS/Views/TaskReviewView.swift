@@ -132,9 +132,9 @@ struct TaskReviewView: View {
     private func loadTasks() {
         // Mock data for now
         tasks = [
-            Task(userId: UUID(), captureId: UUID(), type: .followUp, contactName: "Mary Johnson", message: "Thanks for coming in today! Hope you love your new look. Let me know if you need any touch-ups."),
-            Task(userId: UUID(), captureId: UUID(), type: .reminder, contactName: "Store Manager", message: "Remember to order more shampoo for next week's appointments."),
-            Task(userId: UUID(), captureId: UUID(), type: .followUp, contactName: "Sarah Williams", message: "Hi Sarah! Just wanted to follow up on your appointment today. How are you feeling about the new style?")
+            Task(userId: UUID(), captureId: UUID(), type: .followUp, contactName: "Johnson Family", message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue."),
+            Task(userId: UUID(), captureId: UUID(), type: .reminder, contactName: "Supplier", message: "Remember to order drywall for the Williams project next week."),
+            Task(userId: UUID(), captureId: UUID(), type: .followUp, contactName: "Miller Family", message: "Hi! Just wanted to follow up about your deck project. When would be a good time to schedule the initial consultation?")
         ]
     }
     
