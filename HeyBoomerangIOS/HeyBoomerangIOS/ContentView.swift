@@ -15,7 +15,7 @@ struct ContentView: View {
             if showOnboarding {
                 OnboardingContainerView(showOnboarding: $showOnboarding)
             } else {
-                MainView()
+                MainTabView()
             }
         }
         .animation(.easeInOut, value: showOnboarding)

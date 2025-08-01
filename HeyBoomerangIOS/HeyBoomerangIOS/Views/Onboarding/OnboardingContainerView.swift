@@ -33,7 +33,7 @@ struct OnboardingContainerView: View {
                 
                 case .businessSetup:
                     BusinessSetupView(isCompleted: $businessSetupCompleted)
-                        .onChange(of: businessSetupCompleted) { completed in
+                        .onChange(of: businessSetupCompleted) { _, completed in
                             if completed {
                                 withAnimation {
                                     currentScreen = .permissions
@@ -43,7 +43,7 @@ struct OnboardingContainerView: View {
                 
                 case .permissions:
                     PermissionsView(isCompleted: $permissionsCompleted)
-                        .onChange(of: permissionsCompleted) { completed in
+                        .onChange(of: permissionsCompleted) { _, completed in
                             if completed {
                                 withAnimation {
                                     currentScreen = .tutorial
