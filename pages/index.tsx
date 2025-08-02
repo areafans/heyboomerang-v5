@@ -15,7 +15,7 @@ export default function Home() {
           <h2>API Status</h2>
           <ul>
             <li>✅ Next.js Server</li>
-            <li>⏳ Supabase Database (pending)</li>
+            <li>✅ Supabase Database (connected)</li>
             <li>⏳ OpenAI Integration (pending)</li>
             <li>⏳ Twilio SMS (pending)</li>
             <li>⏳ SendGrid Email (pending)</li>
