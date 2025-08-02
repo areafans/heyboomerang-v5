@@ -128,7 +128,10 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationBarHidden(true)
+            .navigationTitle("Boomerang")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

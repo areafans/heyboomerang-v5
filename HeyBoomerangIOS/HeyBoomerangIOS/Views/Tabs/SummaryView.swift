@@ -70,7 +70,10 @@ struct SummaryView: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationBarHidden(true)
+            .navigationTitle("Boomerang")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .refreshable {
                 // Simulate refresh - in real app would fetch new data
             }

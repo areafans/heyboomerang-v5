@@ -65,7 +65,10 @@ struct TasksView: View {
                     }
                 }
             }
-            .navigationBarHidden(true)
+            .navigationTitle("Boomerang")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .fullScreenCover(isPresented: $showingCardView) {
                 TaskCardStackView(
                     tasks: $pendingTasks,

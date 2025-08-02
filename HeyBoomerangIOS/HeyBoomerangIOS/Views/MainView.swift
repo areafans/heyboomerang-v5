@@ -115,8 +115,10 @@ struct VoiceCaptureView: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Capture")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationTitle("Boomerang")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.regularMaterial, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
     
