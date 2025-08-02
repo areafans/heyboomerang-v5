@@ -71,28 +71,23 @@ struct DashboardView: View {
             }
             .padding(.horizontal, 20)
             
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 4) {
-                    Image(systemName: "sparkles")
-                        .foregroundColor(.purple)
-                        .font(.caption)
-                    Text("\(weeklyMessages) messages crafted with your unique voice")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
+            VStack(spacing: 8) {
+                // Messages crafted card
+                ImpactCard(
+                    icon: "sparkles",
+                    iconColor: .purple,
+                    text: "\(weeklyMessages) messages crafted with your unique voice",
+                    backgroundColor: Color.purple.opacity(0.1)
+                )
                 
-                HStack(spacing: 4) {
-                    Image(systemName: "target")
-                        .foregroundColor(.orange)
-                        .font(.caption)
-                    Text("\(Int(responseRate * 100))% of clients responded positively")
-                        .font(.subheadline)
-                        .fontWeight(.medium)
-                }
+                // Client response card
+                ImpactCard(
+                    icon: "target",
+                    iconColor: .orange,
+                    text: "\(Int(responseRate * 100))% of clients responded positively",
+                    backgroundColor: Color.orange.opacity(0.1)
+                )
             }
-            .padding(16)
-            .background(Color(.systemGray6))
-            .cornerRadius(12)
             .padding(.horizontal, 20)
         }
     }
