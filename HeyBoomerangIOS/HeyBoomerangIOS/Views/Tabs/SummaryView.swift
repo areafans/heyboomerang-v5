@@ -20,7 +20,7 @@ struct SummaryView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 40) {
                     // Page Header (like Capture page)
                     VStack(spacing: 8) {
                         Text("Good morning, \(userName)! ☀️")

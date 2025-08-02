@@ -15,7 +15,7 @@ struct TasksView: View {
     
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
+            VStack(spacing: 40) {
                 // Page Header (like Capture page)
                 VStack(spacing: 8) {
                     Text("\(pendingTasks.count) tasks ready for review")
@@ -48,21 +48,20 @@ struct TasksView: View {
                     }
                     .frame(maxHeight: .infinity)
                 } else {
-                    // Header summary
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("\(pendingTasks.count) tasks ready for review")
-                            .font(.title3)
-                            .fontWeight(.semibold)
+                    // Task section header (like Summary page style)
+                    VStack(spacing: 16) {
+                        HStack {
+                            Image(systemName: "list.bullet.clipboard")
+                                .foregroundColor(.blue)
+                            Text("Pending Tasks")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                            Spacer()
+                        }
+                        .padding(.horizontal, 20)
                         
-                        Text("Tap any task to review and approve")
-                            .font(.subheadline)
-                            .foregroundColor(.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
-                    
-                    // Tasks list
-                    ScrollView {
+                        // Tasks list
+                        ScrollView {
                         LazyVStack(spacing: 8) {
                             ForEach(Array(pendingTasks.enumerated()), id: \.element.id) { index, task in
                                 TaskListRow(task: task) {
@@ -72,9 +71,10 @@ struct TasksView: View {
                             }
                         }
                         .padding(.horizontal, 20)
-                    }
-                    .refreshable {
-                        // Simulate refresh - in real app would fetch new tasks
+                        }
+                        .refreshable {
+                            // Simulate refresh - in real app would fetch new tasks
+                        }
                     }
                 }
             }

@@ -21,7 +21,7 @@ struct DashboardView: View {
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 28) {
+                VStack(spacing: 40) {
                     // Page Header (like Capture page)
                     VStack(spacing: 8) {
                         Text("Your AI Assistant")
@@ -62,6 +62,8 @@ struct DashboardView: View {
     private var atAGlanceSection: some View {
         VStack(spacing: 16) {
             HStack {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(.blue)
                 Text("At a Glance")
                     .font(.headline)
                     .fontWeight(.semibold)
