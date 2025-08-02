@@ -9,6 +9,7 @@ import SwiftUI
 
 struct MainTabView: View {
     @State private var selectedTab = 2 // Start with Capture tab selected
+    @State private var pendingTasksCount = 5 // Mock data - would come from API
     
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -22,12 +23,13 @@ struct MainTabView: View {
                 .tag(0)
             
             // Tasks (Evening review and approval)
-            TasksView()
+            TasksView(pendingTasksCount: $pendingTasksCount)
                 .tabItem {
                     Image(systemName: "moon.stars.fill")
                         .symbolRenderingMode(.hierarchical)
                     Text("Tasks")
                 }
+                .badge(pendingTasksCount > 0 ? "\(pendingTasksCount)" : nil)
                 .tag(1)
             
             // Voice Capture (Center tab)
