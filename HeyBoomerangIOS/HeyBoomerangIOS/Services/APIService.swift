@@ -3,69 +3,91 @@
 //  HeyBoomerangIOS
 //
 //  Created by Jason Clark on 7/31/25.
+//  Refactored by Claude on 8/2/25.
 //
 
 import Foundation
 
-class APIService: ObservableObject {
-    static let shared = APIService()
+// MARK: - Modern API Service Implementation
+
+final class APIService: APIServiceProtocol, ObservableObject {
+    private let networkManager: NetworkManagerProtocol
+    private let configuration: AppConfigurationProtocol
     
-    private let baseURL = "https://your-vercel-app.vercel.app/api"
-    
-    private init() {}
+    init(networkManager: NetworkManagerProtocol, configuration: AppConfigurationProtocol) {
+        self.networkManager = networkManager
+        self.configuration = configuration
+    }
     
     // MARK: - Capture API
     
-    func submitCapture(transcription: String, duration: TimeInterval) async throws -> CaptureResponse {
-        let url = URL(string: "\(baseURL)/capture")!
+    func submitCapture(transcription: String, duration: TimeInterval) async -> Result<CaptureResponse, AppError> {
+        await Logger.shared.info("Submitting capture with transcription length: \(transcription.count)", category: .api)
         
-        let request = CaptureRequest(transcription: transcription, duration: duration)
-        
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "POST"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = try JSONEncoder().encode(request)
-        
-        let (data, response) = try await URLSession.shared.data(for: urlRequest)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
+        guard let url = URL.apiURL(path: "capture", configuration: configuration) else {
+            await Logger.shared.error("Failed to create capture URL", category: .api)
+            return .failure(.network(.invalidURL("capture endpoint")))
         }
         
-        return try JSONDecoder().decode(CaptureResponse.self, from: data)
+        let requestBody = CaptureRequest(transcription: transcription, duration: duration)
+        
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+            
+            let bodyData = try encoder.encode(requestBody)
+            let request = URLRequest.apiRequest(url: url, method: .POST, body: bodyData)
+            
+            return await networkManager.performRequest(request, responseType: CaptureResponse.self)
+                .logError(message: "Failed to submit capture", category: .api)
+            
+        } catch {
+            await Logger.shared.error("Failed to encode capture request", error: error, category: .api)
+            return .failure(.api(.decodingFailed("Failed to encode request: \(error.localizedDescription)")))
+        }
     }
     
     // MARK: - Tasks API
     
-    func getPendingTasks() async throws -> TasksResponse {
-        let url = URL(string: "\(baseURL)/tasks/pending")!
+    func getPendingTasks() async -> Result<TasksResponse, AppError> {
+        await Logger.shared.info("Fetching pending tasks", category: .api)
         
-        let (data, response) = try await URLSession.shared.data(from: url)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
+        guard let url = URL.apiURL(path: "tasks/pending", configuration: configuration) else {
+            await Logger.shared.error("Failed to create tasks URL", category: .api)
+            return .failure(.network(.invalidURL("tasks/pending endpoint")))
         }
         
-        return try JSONDecoder().decode(TasksResponse.self, from: data)
+        let request = URLRequest.apiRequest(url: url, method: .GET)
+        
+        return await networkManager.performRequest(request, responseType: TasksResponse.self)
+            .logError(message: "Failed to fetch pending tasks", category: .api)
     }
     
-    func updateTask(id: UUID, status: Task.TaskStatus, contactId: UUID? = nil, scheduledFor: Date? = nil) async throws {
-        let url = URL(string: "\(baseURL)/tasks/\(id)")!
+    func updateTask(id: UUID, status: Task.TaskStatus, contactId: UUID?, scheduledFor: Date?) async -> Result<Void, AppError> {
+        await Logger.shared.info("Updating task \(id) to status: \(status)", category: .api)
         
-        let request = UpdateTaskRequest(status: status.rawValue, contactId: contactId, scheduledFor: scheduledFor)
+        guard let url = URL.apiURL(path: "tasks/\(id)", configuration: configuration) else {
+            await Logger.shared.error("Failed to create task update URL for task: \(id)", category: .api)
+            return .failure(.network(.invalidURL("tasks/\(id) endpoint")))
+        }
         
-        var urlRequest = URLRequest(url: url)
-        urlRequest.httpMethod = "PUT"
-        urlRequest.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        urlRequest.httpBody = try JSONEncoder().encode(request)
+        let requestBody = UpdateTaskRequest(status: status.rawValue, contactId: contactId, scheduledFor: scheduledFor)
         
-        let (_, response) = try await URLSession.shared.data(for: urlRequest)
-        
-        guard let httpResponse = response as? HTTPURLResponse,
-              httpResponse.statusCode == 200 else {
-            throw APIError.invalidResponse
+        do {
+            let encoder = JSONEncoder()
+            encoder.dateEncodingStrategy = .iso8601
+            encoder.keyEncodingStrategy = .convertToSnakeCase
+            
+            let bodyData = try encoder.encode(requestBody)
+            let request = URLRequest.apiRequest(url: url, method: .PUT, body: bodyData)
+            
+            return await networkManager.performRequest(request)
+                .logError(message: "Failed to update task \(id)", category: .api)
+            
+        } catch {
+            await Logger.shared.error("Failed to encode task update request", error: error, category: .api)
+            return .failure(.api(.decodingFailed("Failed to encode request: \(error.localizedDescription)")))
         }
     }
 }
@@ -75,40 +97,45 @@ class APIService: ObservableObject {
 struct CaptureRequest: Codable {
     let transcription: String
     let duration: TimeInterval
+    
+    // Input validation
+    var isValid: Bool {
+        !transcription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        duration > 0 && duration <= 60 // Max 60 seconds
+    }
 }
 
 struct CaptureResponse: Codable {
     let captureId: UUID
     let suggestedTasks: [Task]?
+    let processingStatus: String?
+    let createdAt: Date?
 }
 
 struct TasksResponse: Codable {
     let active: [Task]
     let archived: [Task]
     let stats: TaskStats
+    let lastSyncedAt: Date?
 }
 
 struct TaskStats: Codable {
     let total: Int
     let needsInfo: Int
+    let completedToday: Int?
+    let averageResponseTime: TimeInterval?
 }
 
 struct UpdateTaskRequest: Codable {
     let status: String
     let contactId: UUID?
     let scheduledFor: Date?
-}
-
-enum APIError: Error, LocalizedError {
-    case invalidResponse
-    case networkError
+    let updatedAt: Date
     
-    var errorDescription: String? {
-        switch self {
-        case .invalidResponse:
-            return "Invalid response from server"
-        case .networkError:
-            return "Network error occurred"
-        }
+    init(status: String, contactId: UUID? = nil, scheduledFor: Date? = nil) {
+        self.status = status
+        self.contactId = contactId
+        self.scheduledFor = scheduledFor
+        self.updatedAt = Date()
     }
 }
