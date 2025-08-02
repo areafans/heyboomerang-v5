@@ -22,8 +22,21 @@ struct DashboardView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 28) {
-                    // AI Hero Section
-                    aiHeroSection
+                    // Page Header (like Capture page)
+                    VStack(spacing: 8) {
+                        Text("Your AI Assistant")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("While you focus on your business, your AI has been working...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 20)
+                    
+                    // At a Glance Section
+                    atAGlanceSection
                     
                     // Business Impact Cards
                     businessImpactSection
@@ -45,25 +58,18 @@ struct DashboardView: View {
         }
     }
     
-    // MARK: - AI Hero Section
-    private var aiHeroSection: some View {
-        VStack(spacing: 12) {
+    // MARK: - At a Glance Section
+    private var atAGlanceSection: some View {
+        VStack(spacing: 16) {
             HStack {
-                Image(systemName: "brain.head.profile")
-                    .foregroundColor(.purple)
-                    .font(.title2)
-                Text("Your AI Assistant")
-                    .font(.title2)
-                    .fontWeight(.bold)
+                Text("At a Glance")
+                    .font(.headline)
+                    .fontWeight(.semibold)
                 Spacer()
             }
+            .padding(.horizontal, 20)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("While you focus on your business, your AI has been working...")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                
                 HStack(spacing: 4) {
                     Image(systemName: "sparkles")
                         .foregroundColor(.purple)
@@ -83,8 +89,9 @@ struct DashboardView: View {
                 }
             }
             .padding(16)
-            .background(Color.purple.opacity(0.08))
+            .background(Color(.systemGray6))
             .cornerRadius(12)
+            .padding(.horizontal, 20)
         }
     }
     

@@ -16,6 +16,19 @@ struct TasksView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
+                // Page Header (like Capture page)
+                VStack(spacing: 8) {
+                    Text("\(pendingTasks.count) tasks ready for review")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    Text("Tap any task to review and approve")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 20)
+                
                 if pendingTasks.isEmpty {
                     // Empty state
                     VStack(spacing: 16) {

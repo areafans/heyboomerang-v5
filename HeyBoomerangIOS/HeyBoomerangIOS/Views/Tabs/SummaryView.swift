@@ -21,18 +21,22 @@ struct SummaryView: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: 24) {
+                    // Page Header (like Capture page)
+                    VStack(spacing: 8) {
+                        Text("Good morning, \(userName)! ☀️")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                        
+                        Text("While you slept, your business was working...")
+                            .font(.subheadline)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                    }
+                    .padding(.horizontal, 20)
+                    
                     if completedMessages.isEmpty {
                         // Empty state
                         VStack(spacing: 16) {
-                            Image(systemName: "sun.max.fill")
-                                .font(.system(size: 60))
-                                .foregroundColor(.orange)
-                                .symbolRenderingMode(.hierarchical)
-                            
-                            Text("Good morning, \(userName)! ☀️")
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                            
                             Text("Your completed messages will appear here each morning")
                                 .font(.body)
                                 .foregroundColor(.secondary)
@@ -41,20 +45,6 @@ struct SummaryView: View {
                         }
                         .frame(maxHeight: .infinity)
                     } else {
-                        // Morning greeting
-                        VStack(spacing: 8) {
-                            Text("Good morning, \(userName)! ☀️")
-                                .font(.title2)
-                                .fontWeight(.bold)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            
-                            Text("While you slept, your business was working...")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 10)
                         
                         // Hero Impact Section
                         heroImpactCard
