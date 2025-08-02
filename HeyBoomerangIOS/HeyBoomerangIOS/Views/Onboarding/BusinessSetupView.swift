@@ -13,13 +13,15 @@ struct BusinessSetupView: View {
     @State private var businessName = ""
     @State private var businessDescription = ""
     @FocusState private var focusedField: Field?
+    @State private var isKeyboardVisible = false
     
     enum Field {
         case userName, businessName, businessDescription
     }
     
     var body: some View {
-        ScrollView {
+        ZStack {
+            ScrollView {
             VStack(spacing: 32) {
                 // Header
                 VStack(spacing: 16) {
@@ -95,6 +97,7 @@ struct BusinessSetupView: View {
                             .textInputAutocapitalization(.sentences)
                             .autocorrectionDisabled(true)
                             .focused($focusedField, equals: .businessDescription)
+                            .submitLabel(.return)
                     }
                 }
                 .padding(.horizontal, 24)
@@ -109,24 +112,49 @@ struct BusinessSetupView: View {
                 .disabled(!canContinue)
                 .padding(.horizontal, 24)
                 .padding(.top, 20)
-            }
-            .padding(.bottom, 100) // Extra padding for keyboard
-        }
-        .scrollDismissesKeyboard(.interactively)
-        .onTapGesture {
-            focusedField = nil
-        }
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                if focusedField == .businessDescription {
-                    Spacer()
-                    Button("Done") {
-                        // Just dismiss keyboard - let user see form and manually tap Continue
-                        focusedField = nil
-                    }
-                    .foregroundColor(.blue)
-                    .fontWeight(.semibold)
                 }
+                .padding(.bottom, 100) // Extra padding for keyboard
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture {
+                focusedField = nil
+            }
+            
+            // Floating Done button when keyboard is visible
+            if isKeyboardVisible {
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Button("Done") {
+                            focusedField = nil
+                        }
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
+                        .background(Color.blue)
+                        .foregroundColor(.white)
+                        .fontWeight(.semibold)
+                        .cornerRadius(25)
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
+                        .padding(.trailing, 20)
+                        .padding(.bottom, 20)
+                    }
+                }
+            }
+        }
+        .onChange(of: focusedField) { oldValue, newValue in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                isKeyboardVisible = newValue != nil
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                isKeyboardVisible = true
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            withAnimation(.easeInOut(duration: 0.3)) {
+                isKeyboardVisible = false
             }
         }
     }

@@ -13,7 +13,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
     private let apiService: APIServiceProtocol
     private let storage: SecureStorageProtocol
     
-    @Published var pendingTasks: [Task] = []
+    @Published var pendingTasks: [AppTask] = []
     @Published var isLoading = false
     @Published var lastError: AppError?
     
@@ -29,7 +29,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
     
     // MARK: - Public Interface
     
-    func loadPendingTasks() async -> Result<[Task], AppError> {
+    func loadPendingTasks() async -> Result<[AppTask], AppError> {
         await Logger.shared.info("Loading pending tasks", category: .api)
         
         await MainActor.run {
@@ -74,7 +74,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
         }
     }
     
-    func approveTask(_ task: Task) async -> Result<Void, AppError> {
+    func approveTask(_ task: AppTask) async -> Result<Void, AppError> {
         await Logger.shared.info("Approving task: \(task.id)", category: .api)
         
         let result = await apiService.updateTask(
@@ -99,7 +99,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
         }
     }
     
-    func skipTask(_ task: Task) async -> Result<Void, AppError> {
+    func skipTask(_ task: AppTask) async -> Result<Void, AppError> {
         await Logger.shared.info("Skipping task: \(task.id)", category: .api)
         
         let result = await apiService.updateTask(
@@ -124,7 +124,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
         }
     }
     
-    func updateTaskStatus(_ taskId: UUID, status: Task.TaskStatus) async -> Result<Void, AppError> {
+    func updateTaskStatus(_ taskId: UUID, status: AppTask.TaskStatus) async -> Result<Void, AppError> {
         await Logger.shared.info("Updating task \(taskId) status to: \(status)", category: .api)
         
         let result = await apiService.updateTask(id: taskId, status: status, contactId: nil, scheduledFor: nil)
@@ -155,7 +155,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
         await cacheTasks(pendingTasks)
     }
     
-    private func cacheTasks(_ tasks: [Task]) async {
+    private func cacheTasks(_ tasks: [AppTask]) async {
         do {
             try storage.store(tasks, forKey: StorageKey.cachedTasks)
             await Logger.shared.debug("Cached \(tasks.count) tasks", category: .storage)
@@ -165,9 +165,9 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
     }
     
     @discardableResult
-    private func loadCachedTasks() async -> [Task]? {
+    private func loadCachedTasks() async -> [AppTask]? {
         do {
-            let cachedTasks = try storage.retrieve([Task].self, forKey: StorageKey.cachedTasks)
+            let cachedTasks = try storage.retrieve([AppTask].self, forKey: StorageKey.cachedTasks)
             await MainActor.run {
                 pendingTasks = cachedTasks
             }

@@ -9,70 +9,49 @@ import Foundation
 
 // MARK: - Dependency Injection Container
 
-/// Thread-safe dependency injection container for managing app services
+/// Simple dependency injection container for managing app services
 @MainActor
 final class DependencyContainer: ObservableObject {
     static let shared = DependencyContainer()
     
-    private var services: [String: Any] = [:]
-    private let queue = DispatchQueue(label: "com.heyboomerang.dependency-container", attributes: .concurrent)
+    // Direct service references - concrete types for simplicity
+    private var _appConfiguration: AppConfiguration!
+    private var _secureStorage: SecureStorage!
+    private var _networkManager: NetworkManager!
+    private var _apiService: APIService!
+    private var _voiceCaptureService: VoiceCaptureService!
+    private var _taskService: TaskService!
+    private var _userService: UserService!
     
     private init() {
-        registerDefaultServices()
+        setupServices()
     }
     
-    /// Register a service with the container
-    func register<T>(_ type: T.Type, factory: @escaping () -> T) {
-        let key = String(describing: type)
-        services[key] = factory()
-    }
+    // MARK: - Service Accessors
     
-    /// Register a singleton service with the container
-    func registerSingleton<T>(_ type: T.Type, instance: T) {
-        let key = String(describing: type)
-        services[key] = instance
-    }
+    var appConfiguration: AppConfiguration { _appConfiguration }
+    var secureStorage: SecureStorage { _secureStorage }
+    var networkManager: NetworkManager { _networkManager }
+    var apiService: APIService { _apiService }
+    var voiceCaptureService: VoiceCaptureService { _voiceCaptureService }
+    var taskService: TaskService { _taskService }
+    var userService: UserService { _userService }
     
-    /// Resolve a service from the container
-    func resolve<T>(_ type: T.Type) -> T {
-        let key = String(describing: type)
-        guard let service = services[key] as? T else {
-            fatalError("Service of type \(type) not registered")
-        }
-        return service
-    }
-    
-    /// Try to resolve a service from the container (returns nil if not found)
-    func tryResolve<T>(_ type: T.Type) -> T? {
-        let key = String(describing: type)
-        return services[key] as? T
-    }
-    
-    private func registerDefaultServices() {
-        // Register core services
-        registerSingleton(AppConfigurationProtocol.self, instance: AppConfiguration())
-        registerSingleton(SecureStorageProtocol.self, instance: SecureStorage())
+    private func setupServices() {
+        // Create core services
+        _appConfiguration = AppConfiguration()
+        _secureStorage = SecureStorage()
         
-        // Register network services
-        let config = resolve(AppConfigurationProtocol.self)
-        let storage = resolve(SecureStorageProtocol.self)
+        // Create network services
+        _networkManager = NetworkManager(configuration: _appConfiguration)
+        _apiService = APIService(networkManager: _networkManager, configuration: _appConfiguration)
         
-        let networkManager = NetworkManager(configuration: config)
-        registerSingleton(any NetworkManagerProtocol.self, instance: networkManager)
+        // Create voice capture service
+        _voiceCaptureService = VoiceCaptureService(configuration: _appConfiguration)
         
-        let apiService = APIService(networkManager: networkManager, configuration: config)
-        registerSingleton(any APIServiceProtocol.self, instance: apiService)
-        
-        // Register voice capture service
-        let voiceService = VoiceCaptureService(configuration: config)
-        registerSingleton(any VoiceCaptureServiceProtocol.self, instance: voiceService)
-        
-        // Register business services
-        let taskService = TaskService(apiService: apiService, storage: storage)
-        registerSingleton(any TaskServiceProtocol.self, instance: taskService)
-        
-        let userService = UserService(apiService: apiService, storage: storage)
-        registerSingleton(any UserServiceProtocol.self, instance: userService)
+        // Create business services
+        _taskService = TaskService(apiService: _apiService, storage: _secureStorage)
+        _userService = UserService(apiService: _apiService, storage: _secureStorage)
     }
 }
 
@@ -104,7 +83,7 @@ protocol NetworkManagerProtocol {
 protocol APIServiceProtocol {
     func submitCapture(transcription: String, duration: TimeInterval) async -> Result<CaptureResponse, AppError>
     func getPendingTasks() async -> Result<TasksResponse, AppError>
-    func updateTask(id: UUID, status: Task.TaskStatus, contactId: UUID?, scheduledFor: Date?) async -> Result<Void, AppError>
+    func updateTask(id: UUID, status: AppTask.TaskStatus, contactId: UUID?, scheduledFor: Date?) async -> Result<Void, AppError>
 }
 
 protocol VoiceCaptureServiceProtocol: ObservableObject {
@@ -118,16 +97,23 @@ protocol VoiceCaptureServiceProtocol: ObservableObject {
 }
 
 protocol TaskServiceProtocol {
-    func loadPendingTasks() async -> Result<[Task], AppError>
-    func approveTask(_ task: Task) async -> Result<Void, AppError>
-    func skipTask(_ task: Task) async -> Result<Void, AppError>
-    func updateTaskStatus(_ taskId: UUID, status: Task.TaskStatus) async -> Result<Void, AppError>
+    func loadPendingTasks() async -> Result<[AppTask], AppError>
+    func approveTask(_ task: AppTask) async -> Result<Void, AppError>
+    func skipTask(_ task: AppTask) async -> Result<Void, AppError>
+    func updateTaskStatus(_ taskId: UUID, status: AppTask.TaskStatus) async -> Result<Void, AppError>
 }
 
-protocol UserServiceProtocol {
+protocol UserServiceProtocol: ObservableObject {
+    var currentUser: User? { get }
+    var isAuthenticated: Bool { get }
+    var isLoading: Bool { get }
+    var lastError: AppError? { get }
+    
     func getCurrentUser() async -> Result<User?, AppError>
     func updateUserProfile(_ user: User) async -> Result<User, AppError>
     func signOut() async -> Result<Void, AppError>
+    func isOnboardingCompleted() -> Bool
+    func completeOnboarding() async -> Result<Void, AppError>
 }
 
 // MARK: - App Configuration
@@ -175,17 +161,3 @@ final class AppConfiguration: AppConfigurationProtocol {
     let requestTimeout: TimeInterval = 30.0
 }
 
-// MARK: - Property Wrapper for Dependency Injection
-
-@propertyWrapper
-struct Injected<T> {
-    private let type: T.Type
-    
-    init(_ type: T.Type) {
-        self.type = type
-    }
-    
-    var wrappedValue: T {
-        DependencyContainer.shared.resolve(type)
-    }
-}

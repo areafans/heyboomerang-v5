@@ -8,7 +8,7 @@
 import SwiftUI
 
 struct VoiceCaptureView: View {
-    @StateObject private var voiceService = VoiceCaptureService()
+    @StateObject private var voiceService = DependencyContainer.shared.voiceCaptureService
     @State private var showingReview = false
     @State private var dailyCaptureCount = 7
     @State private var pendingTasksCount = 12
@@ -65,14 +65,18 @@ struct VoiceCaptureView: View {
                         .animation(.easeInOut(duration: 0.1), value: isPressed)
                         .onLongPressGesture(minimumDuration: 0.1, maximumDistance: 50) {
                             // Long press completed
-                            voiceService.stopRecording()
+                            Task {
+                                await voiceService.stopRecording()
+                            }
                             isPressed = false
                         } onPressingChanged: { pressing in
                             if pressing {
                                 isPressed = true
                                 startRecording()
                             } else if voiceService.isRecording {
-                                voiceService.stopRecording()
+                                Task {
+                                    await voiceService.stopRecording()
+                                }
                                 isPressed = false
                             }
                         }
@@ -123,7 +127,9 @@ struct VoiceCaptureView: View {
     }
     
     private func startRecording() {
-        voiceService.startRecording()
+        Task {
+            await voiceService.startRecording()
+        }
     }
 }
 

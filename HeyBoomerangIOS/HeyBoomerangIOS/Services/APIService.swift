@@ -64,7 +64,7 @@ final class APIService: APIServiceProtocol, ObservableObject {
             .logError(message: "Failed to fetch pending tasks", category: .api)
     }
     
-    func updateTask(id: UUID, status: Task.TaskStatus, contactId: UUID?, scheduledFor: Date?) async -> Result<Void, AppError> {
+    func updateTask(id: UUID, status: AppTask.TaskStatus, contactId: UUID?, scheduledFor: Date?) async -> Result<Void, AppError> {
         await Logger.shared.info("Updating task \(id) to status: \(status)", category: .api)
         
         guard let url = URL.apiURL(path: "tasks/\(id)", configuration: configuration) else {
@@ -107,14 +107,14 @@ struct CaptureRequest: Codable {
 
 struct CaptureResponse: Codable {
     let captureId: UUID
-    let suggestedTasks: [Task]?
+    let suggestedTasks: [AppTask]?
     let processingStatus: String?
     let createdAt: Date?
 }
 
 struct TasksResponse: Codable {
-    let active: [Task]
-    let archived: [Task]
+    let active: [AppTask]
+    let archived: [AppTask]
     let stats: TaskStats
     let lastSyncedAt: Date?
 }

@@ -62,7 +62,7 @@ struct HeyBoomerangIOSApp: App {
         await Logger.shared.debug("Performing startup checks", category: .general)
         
         // Check for critical permissions
-        let voiceService = dependencyContainer.resolve(any VoiceCaptureServiceProtocol.self)
+        let voiceService = dependencyContainer.voiceCaptureService
         let permissionResult = await voiceService.requestPermissions()
         
         switch permissionResult {

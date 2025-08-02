@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TaskReviewView: View {
     @Environment(\.dismiss) private var dismiss
-    @State private var tasks: [Task] = []
+    @State private var tasks: [AppTask] = []
     @State private var currentTaskIndex = 0
     
     var body: some View {
@@ -132,9 +132,9 @@ struct TaskReviewView: View {
     private func loadTasks() {
         // Mock data for now
         tasks = [
-            Task(userId: UUID(), captureId: UUID(), type: .followUpSMS, contactName: "Johnson Family", message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue.", originalTranscription: "Just finished the kitchen demo at the Johnson house"),
-            Task(userId: UUID(), captureId: UUID(), type: .reminderCall, contactName: "Supplier", message: "Remember to order drywall for the Williams project next week.", originalTranscription: "Need to order drywall for the Williams project next week"),
-            Task(userId: UUID(), captureId: UUID(), type: .followUpSMS, contactName: "Miller Family", message: "Hi! Just wanted to follow up about your deck project. When would be a good time to schedule the initial consultation?", originalTranscription: "Need to follow up with the Miller family about their deck project")
+            AppTask(userId: UUID(), captureId: UUID(), type: .followUpSMS, contactName: "Johnson Family", message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue.", originalTranscription: "Just finished the kitchen demo at the Johnson house"),
+            AppTask(userId: UUID(), captureId: UUID(), type: .reminderCall, contactName: "Supplier", message: "Remember to order drywall for the Williams project next week.", originalTranscription: "Need to order drywall for the Williams project next week"),
+            AppTask(userId: UUID(), captureId: UUID(), type: .followUpSMS, contactName: "Miller Family", message: "Hi! Just wanted to follow up about your deck project. When would be a good time to schedule the initial consultation?", originalTranscription: "Need to follow up with the Miller family about their deck project")
         ]
     }
     

@@ -9,16 +9,15 @@
 import Foundation
 import AVFoundation
 import Speech
-import Observation
+import SwiftUI
 
 // MARK: - Modern Voice Capture Service with iOS 17+ @Observable
 
-@Observable
-final class VoiceCaptureService: VoiceCaptureServiceProtocol {
+final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, ObservableObject, @unchecked Sendable {
     // Observable properties
-    var isRecording = false
-    var transcription = ""
-    var currentError: AppError?
+    @Published var isRecording = false
+    @Published var transcription = ""
+    @Published var currentError: AppError?
     
     // Private properties
     private var audioEngine: AVAudioEngine?
@@ -45,6 +44,7 @@ final class VoiceCaptureService: VoiceCaptureServiceProtocol {
     
     init(configuration: AppConfigurationProtocol? = nil) {
         self.configuration = configuration ?? AppConfiguration()
+        super.init()
         setupSpeechRecognition()
     }
     
@@ -53,6 +53,35 @@ final class VoiceCaptureService: VoiceCaptureServiceProtocol {
     }
     
     // MARK: - Public Interface
+    
+    // MARK: - Permission Checking (non-requesting)
+    
+    func checkPermissions() async -> Bool {
+        let micStatus: Bool
+        if #available(iOS 17.0, *) {
+            micStatus = AVAudioApplication.shared.recordPermission == .granted
+        } else {
+            micStatus = AVAudioSession.sharedInstance().recordPermission == .granted
+        }
+        
+        let speechStatus = SFSpeechRecognizer.authorizationStatus()
+        
+        return micStatus && speechStatus == .authorized
+    }
+    
+    func getMicrophonePermissionStatus() -> Bool {
+        if #available(iOS 17.0, *) {
+            return AVAudioApplication.shared.recordPermission == .granted
+        } else {
+            return AVAudioSession.sharedInstance().recordPermission == .granted
+        }
+    }
+    
+    func getSpeechRecognitionPermissionStatus() -> Bool {
+        return SFSpeechRecognizer.authorizationStatus() == .authorized
+    }
+    
+    // MARK: - Permission Requesting (for onboarding)
     
     func requestPermissions() async -> Result<Bool, AppError> {
         await Logger.shared.info("Requesting microphone and speech recognition permissions", category: .voiceCapture)
@@ -75,13 +104,9 @@ final class VoiceCaptureService: VoiceCaptureServiceProtocol {
         currentError = nil
         transcription = ""
         
-        // Check permissions first
-        let permissionResult = await requestPermissions()
-        guard case .success(true) = permissionResult else {
-            if case .failure(let error) = permissionResult {
-                currentError = error
-                return .failure(error)
-            }
+        // Check permissions first - don't request, just check
+        let hasPermissions = await checkPermissions()
+        guard hasPermissions else {
             let error = AppError.voiceCapture(.permissionDenied)
             currentError = error
             return .failure(error)
@@ -271,19 +296,29 @@ final class VoiceCaptureService: VoiceCaptureServiceProtocol {
     
     // MARK: - Permission Requests
     
-    private func requestMicrophonePermission() async -> Result<Bool, AppError> {
+    func requestMicrophonePermission() async -> Result<Bool, AppError> {
         return await withCheckedContinuation { continuation in
-            AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                if granted {
-                    continuation.resume(returning: .success(true))
-                } else {
-                    continuation.resume(returning: .failure(.voiceCapture(.permissionDenied)))
+            if #available(iOS 17.0, *) {
+                AVAudioApplication.requestRecordPermission { granted in
+                    if granted {
+                        continuation.resume(returning: .success(true))
+                    } else {
+                        continuation.resume(returning: .failure(.voiceCapture(.permissionDenied)))
+                    }
+                }
+            } else {
+                AVAudioSession.sharedInstance().requestRecordPermission { granted in
+                    if granted {
+                        continuation.resume(returning: .success(true))
+                    } else {
+                        continuation.resume(returning: .failure(.voiceCapture(.permissionDenied)))
+                    }
                 }
             }
         }
     }
     
-    private func requestSpeechRecognitionPermission() async -> Result<Bool, AppError> {
+    func requestSpeechRecognitionPermission() async -> Result<Bool, AppError> {
         return await withCheckedContinuation { continuation in
             SFSpeechRecognizer.requestAuthorization { status in
                 switch status {

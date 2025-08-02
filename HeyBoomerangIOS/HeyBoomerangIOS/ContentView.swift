@@ -9,9 +9,7 @@
 import SwiftUI
 
 struct ContentView: View {
-    private var userService: any UserServiceProtocol {
-        DependencyContainer.shared.resolve(any UserServiceProtocol.self)
-    }
+    @StateObject private var userService = DependencyContainer.shared.userService
     @State private var showOnboarding = true
     @State private var isInitialized = false
     

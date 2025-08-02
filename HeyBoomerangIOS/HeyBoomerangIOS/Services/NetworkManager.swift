@@ -141,7 +141,7 @@ final class NetworkManager: NetworkManagerProtocol, ObservableObject {
         }
     }
     
-    private func handleURLError(_ error: URLError) async -> Result<Never, AppError> {
+    private func handleURLError<T>(_ error: URLError) async -> Result<T, AppError> {
         await Logger.shared.error("URLError occurred", error: error, category: .network)
         
         switch error.code {
@@ -160,13 +160,11 @@ final class NetworkManager: NetworkManagerProtocol, ObservableObject {
     
     private func startNetworkMonitoring() {
         networkMonitor.pathUpdateHandler = { [weak self] path in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 self?.isConnected = path.status == .satisfied
                 self?.connectionType = path.availableInterfaces.first?.type
                 
-                Task {
-                    await Logger.shared.info("Network status changed - Connected: \(path.status == .satisfied)", category: .network)
-                }
+                await Logger.shared.info("Network status changed - Connected: \(path.status == .satisfied)", category: .network)
             }
         }
         
