@@ -35,17 +35,19 @@ struct DashboardView: View {
                     }
                     .padding(.horizontal, 20)
                     
-                    // At a Glance Section
-                    atAGlanceSection
-                    
-                    // Business Impact Cards
-                    businessImpactSection
-                    
-                    // AI Performance Section
-                    aiPerformanceSection
-                    
-                    // Smart Insights Section
-                    smartInsightsSection
+                    VStack(spacing: 28) {
+                        // At a Glance Section
+                        atAGlanceSection
+                        
+                        // Business Impact Cards
+                        businessImpactSection
+                        
+                        // AI Performance Section
+                        aiPerformanceSection
+                        
+                        // Smart Insights Section
+                        smartInsightsSection
+                    }
                     
                     Spacer(minLength: 100)
                 }
