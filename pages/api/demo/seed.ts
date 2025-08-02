@@ -14,8 +14,8 @@ export default async function handler(
     return res.status(405).json({ error: 'Method not allowed' })
   }
 
-  // Only allow in development/staging environments
-  if (process.env.NODE_ENV === 'production') {
+  // Only allow in development/staging environments, or if explicitly enabled
+  if (process.env.NODE_ENV === 'production' && !process.env.ALLOW_DEMO_SEEDING) {
     return res.status(403).json({ error: 'Demo seeding not allowed in production' })
   }
 
