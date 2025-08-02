@@ -10,6 +10,7 @@ import SwiftUI
 struct EmailAuthView: View {
     @Binding var isCompleted: Bool
     @ObservedObject var onboardingData: OnboardingData
+    @StateObject private var authService = SupabaseAuthService.shared
     @State private var isLoading = false
     @State private var showSuccess = false
     @State private var errorMessage = ""
@@ -169,63 +170,58 @@ struct EmailAuthView: View {
         // Update the email in onboarding data (cleaned)
         onboardingData.email = email
         
-        // Call our backend API to send magic link
+        // Use Supabase Auth to send magic link
         Task {
             do {
-                let success = try await sendMagicLinkAPI(email: email)
+                try await authService.signInWithMagicLink(email: email)
                 
                 await MainActor.run {
                     isLoading = false
-                    if success {
-                        showSuccess = true
-                    } else {
-                        errorMessage = "Failed to send email. Please try again."
-                    }
+                    showSuccess = true
                 }
             } catch {
                 await MainActor.run {
                     isLoading = false
-                    errorMessage = "Network error. Please check your connection and try again."
+                    errorMessage = "Failed to send email: \(error.localizedDescription)"
                 }
             }
         }
     }
     
-    private func sendMagicLinkAPI(email: String) async throws -> Bool {
-        guard let url = URL(string: "https://heyboomerang-v5.vercel.app/api/auth/signin") else {
-            throw URLError(.badURL)
-        }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body = ["email": email]
-        request.httpBody = try JSONSerialization.data(withJSONObject: body)
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        
-        guard let httpResponse = response as? HTTPURLResponse else {
-            return false
-        }
-        
-        if httpResponse.statusCode == 200 {
-            return true
-        } else {
-            // Log the error for debugging
-            if let errorData = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let error = errorData["error"] as? String {
-                print("Magic link error: \(error)")
-            }
-            return false
-        }
-    }
     
     private func completeAuthentication() {
-        // For now, just complete the onboarding step
-        // In a full implementation, this would verify the authentication token
-        withAnimation {
-            isCompleted = true
+        // Check if user is authenticated via Supabase
+        if authService.isAuthenticated, 
+           let accessToken = authService.accessToken,
+           let userId = authService.user?.id.uuidString {
+            
+            // Store authentication data
+            onboardingData.accessToken = accessToken
+            onboardingData.userId = userId
+            
+            // Update user profile with business information
+            Task {
+                do {
+                    try await authService.updateUserProfile(
+                        businessName: onboardingData.businessName,
+                        businessType: "Service Business", // Default for now
+                        businessDescription: onboardingData.businessDescription
+                    )
+                    
+                    await MainActor.run {
+                        // Complete authentication step
+                        withAnimation {
+                            isCompleted = true
+                        }
+                    }
+                } catch {
+                    await MainActor.run {
+                        errorMessage = "Failed to update profile: \(error.localizedDescription)"
+                    }
+                }
+            }
+        } else {
+            errorMessage = "Please complete authentication first by clicking the email link"
         }
     }
     

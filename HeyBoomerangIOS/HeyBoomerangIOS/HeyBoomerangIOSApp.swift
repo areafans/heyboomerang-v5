@@ -12,14 +12,38 @@ import SwiftUI
 struct HeyBoomerangIOSApp: App {
     // Initialize dependency container
     @StateObject private var dependencyContainer = DependencyContainer.shared
+    // Initialize Supabase auth service
+    @StateObject private var authService = SupabaseAuthService.shared
     
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environmentObject(dependencyContainer)
+                .environmentObject(authService)
                 .task {
                     await initializeApp()
                 }
+                .onOpenURL { url in
+                    handleIncomingURL(url)
+                }
+        }
+    }
+    
+    // MARK: - URL Handling
+    
+    private func handleIncomingURL(_ url: URL) {
+        print("Received URL: \(url)")
+        
+        // Handle auth callback
+        if url.scheme == "boomerang" && url.host == "auth" {
+            Task {
+                do {
+                    try await authService.handleAuthCallback(url: url)
+                    await Logger.shared.info("Successfully handled auth callback", category: .general)
+                } catch {
+                    await Logger.shared.error("Failed to handle auth callback", error: error, category: .general)
+                }
+            }
         }
     }
     
