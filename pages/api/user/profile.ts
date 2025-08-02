@@ -74,8 +74,8 @@ export default async function handler(
           .insert({
             id: authUser.id,
             email: authUser.email,
-            business_name: null,
-            business_type: null,
+            business_name: 'My Business', // Temporary default, will be updated during onboarding
+            business_type: 'Service Business', // Temporary default, will be updated during onboarding
             business_description: null,
             phone_number: null,
             timezone: 'America/New_York',
