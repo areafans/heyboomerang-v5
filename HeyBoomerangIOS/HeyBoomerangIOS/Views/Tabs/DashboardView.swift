@@ -38,8 +38,7 @@ struct DashboardView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Dashboard")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarHidden(true)
         }
     }
     

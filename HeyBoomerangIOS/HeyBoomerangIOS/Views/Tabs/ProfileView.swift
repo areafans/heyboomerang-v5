@@ -128,8 +128,7 @@ struct ProfileView: View {
                 }
                 .padding(.horizontal, 20)
             }
-            .navigationTitle("Profile")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarHidden(true)
         }
     }
 }

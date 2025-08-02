@@ -70,8 +70,7 @@ struct SummaryView: View {
                 }
                 .padding(.bottom, 20)
             }
-            .navigationTitle("Summary")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarHidden(true)
             .refreshable {
                 // Simulate refresh - in real app would fetch new data
             }

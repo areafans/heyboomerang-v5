@@ -65,8 +65,7 @@ struct TasksView: View {
                     }
                 }
             }
-            .navigationTitle("Tasks")
-            .navigationBarTitleDisplayMode(.large)
+            .navigationBarHidden(true)
             .fullScreenCover(isPresented: $showingCardView) {
                 TaskCardStackView(
                     tasks: $pendingTasks,
