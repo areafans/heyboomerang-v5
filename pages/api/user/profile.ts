@@ -91,8 +91,7 @@ export default async function handler(
           console.error('Profile creation error:', createError)
           console.error('Error details:', JSON.stringify(createError, null, 2))
           return res.status(500).json({ 
-            error: 'Failed to create user profile',
-            details: createError.message 
+            error: `Failed to create user profile: ${createError.message}`
           })
         }
         

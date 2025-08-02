@@ -56,7 +56,7 @@ export default function AuthCallback() {
           })
         } else {
           setStatus('error')
-          setMessage(data.error + (data.details ? ` - ${data.details}` : '') || 'Authentication failed')
+          setMessage(data.error || 'Authentication failed')
           console.error('Authentication error:', data)
         }
 
