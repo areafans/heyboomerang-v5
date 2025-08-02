@@ -8,11 +8,10 @@
 import SwiftUI
 
 struct TasksView: View {
-    @State private var pendingTasks = [
-        PendingTask(contactName: "Johnson Family", type: "Follow-up", message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start."),
-        PendingTask(contactName: "Miller Family", type: "Follow-up", message: "Hi! Just wanted to follow up about your deck project. When would be a good time to schedule?"),
-        PendingTask(contactName: "Supplier", type: "Reminder", message: "Remember to order drywall for the Williams project next week.")
-    ]
+    @Binding var pendingTasksCount: Int
+    @State private var pendingTasks: [Task] = []
+    @State private var showingCardView = false
+    @State private var selectedTaskIndex = 0
     
     var body: some View {
         NavigationView {
@@ -42,7 +41,7 @@ struct TasksView: View {
                             .font(.title3)
                             .fontWeight(.semibold)
                         
-                        Text("Review and approve to send automatically")
+                        Text("Tap any task to review and approve")
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     }
@@ -51,15 +50,11 @@ struct TasksView: View {
                     
                     // Tasks list
                     ScrollView {
-                        LazyVStack(spacing: 16) {
-                            ForEach(pendingTasks) { task in
-                                PendingTaskRow(task: task) {
-                                    // Remove task when approved
-                                    if let index = pendingTasks.firstIndex(where: { $0.id == task.id }) {
-                                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                            pendingTasks.remove(at: index)
-                                        }
-                                    }
+                        LazyVStack(spacing: 8) {
+                            ForEach(Array(pendingTasks.enumerated()), id: \.element.id) { index, task in
+                                TaskListRow(task: task) {
+                                    selectedTaskIndex = index
+                                    showingCardView = true
                                 }
                             }
                         }
@@ -72,83 +67,130 @@ struct TasksView: View {
             }
             .navigationTitle("Tasks")
             .navigationBarTitleDisplayMode(.large)
+            .fullScreenCover(isPresented: $showingCardView) {
+                TaskCardStackView(
+                    tasks: $pendingTasks,
+                    startingIndex: selectedTaskIndex,
+                    pendingTasksCount: $pendingTasksCount
+                )
+            }
+            .onAppear {
+                loadMockTasks()
+            }
         }
+    }
+    
+    private func loadMockTasks() {
+        pendingTasks = [
+            Task(
+                userId: UUID(),
+                captureId: UUID(),
+                type: .followUpSMS,
+                contactName: "Johnson Family",
+                message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue.",
+                originalTranscription: "Just finished the kitchen demo at the Johnson house"
+            ),
+            Task(
+                userId: UUID(),
+                captureId: UUID(),
+                type: .reminderCall,
+                contactName: "Supplier - ABC Materials",
+                message: "Call supplier about drywall delivery for Williams project",
+                originalTranscription: "Need to order drywall for the Williams project next week"
+            ),
+            Task(
+                userId: UUID(),
+                captureId: UUID(),
+                type: .campaign,
+                contactName: "All Past Clients",
+                message: "Spring renovation special - 15% off all kitchen and bathroom projects through May!",
+                originalTranscription: "Running a spring special next month"
+            ),
+            Task(
+                userId: UUID(),
+                captureId: UUID(),
+                type: .contactCRUD,
+                contactName: "John Smith",
+                message: "Add new client: John Smith, phone: 555-0123, interested in deck renovation",
+                originalTranscription: "Add new client John Smith 555-0123 deck project"
+            ),
+            Task(
+                userId: UUID(),
+                captureId: UUID(),
+                type: .emailSendReply,
+                contactName: "Miller Family",
+                message: "Reply to Miller family about deck project timeline and material selection",
+                originalTranscription: "Need to reply to the Millers about their deck timeline"
+            )
+        ]
+        pendingTasksCount = pendingTasks.count
     }
 }
 
-struct PendingTask: Identifiable {
-    let id = UUID()
-    let contactName: String
-    let type: String
-    let message: String
-}
-
-struct PendingTaskRow: View {
-    let task: PendingTask
-    let onApprove: () -> Void
+struct TaskListRow: View {
+    let task: Task
+    let onTap: () -> Void
+    
+    private var taskColor: Color {
+        switch task.type.color {
+        case "blue": return .blue
+        case "orange": return .orange
+        case "purple": return .purple
+        case "green": return .green
+        case "indigo": return .indigo
+        default: return .blue
+        }
+    }
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Header
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(task.contactName)
-                        .font(.headline)
-                    
-                    Text(task.type)
-                        .font(.subheadline)
-                        .foregroundColor(.blue)
-                        .fontWeight(.medium)
-                }
-                
-                Spacer()
-                
-                // Type badge with icon
-                HStack(spacing: 4) {
-                    Image(systemName: task.type == "Follow-up" ? "arrow.turn.up.right" : "bell.fill")
-                        .font(.caption2)
-                        .symbolRenderingMode(.hierarchical)
-                    
-                    Text(task.type)
-                        .font(.caption)
-                }
-                .padding(.horizontal, 8)
-                .padding(.vertical, 4)
-                .background(Color.blue.opacity(0.2))
-                .foregroundColor(.blue)
-                .cornerRadius(8)
-            }
-            
-            // Message preview
-            Text(task.message)
-                .font(.body)
-                .foregroundColor(.primary)
-                .lineLimit(3)
-            
-            // Action buttons
+        Button(action: onTap) {
             HStack(spacing: 12) {
-                Button("Skip") {
-                    // Skip task
-                    onApprove()
-                }
-                .buttonStyle(.bordered)
-                .frame(maxWidth: .infinity)
+                // Type icon
+                Image(systemName: task.type.icon)
+                    .font(.title3)
+                    .foregroundColor(taskColor)
+                    .symbolRenderingMode(.hierarchical)
+                    .frame(width: 24, height: 24)
                 
-                Button("Approve") {
-                    // Approve task
-                    onApprove()
+                // Task summary
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack {
+                        Text(task.contactName ?? "Unknown Contact")
+                            .font(.subheadline)
+                            .fontWeight(.medium)
+                            .foregroundColor(.primary)
+                        
+                        Spacer()
+                        
+                        // Type label
+                        Text(task.type.displayName)
+                            .font(.caption)
+                            .foregroundColor(taskColor)
+                            .fontWeight(.medium)
+                    }
+                    
+                    // Brief message preview
+                    Text(task.message)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .lineLimit(2)
                 }
-                .buttonStyle(.borderedProminent)
-                .frame(maxWidth: .infinity)
+                
+                // Chevron
+                Image(systemName: "chevron.right")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
             }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 12)
+            .background(Color(.systemBackground))
+            .cornerRadius(10)
+            .shadow(color: .black.opacity(0.03), radius: 2, x: 0, y: 1)
         }
-        .padding(16)
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+        .buttonStyle(.plain)
     }
 }
 
 #Preview {
-    TasksView()
+    TasksView(pendingTasksCount: .constant(5))
 }

@@ -54,7 +54,7 @@ struct TaskReviewView: View {
                             VStack(spacing: 20) {
                                 // Task Type Badge
                                 HStack {
-                                    Text(task.type.rawValue.capitalized)
+                                    Text(task.type.displayName)
                                         .font(.caption)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 4)
@@ -132,9 +132,9 @@ struct TaskReviewView: View {
     private func loadTasks() {
         // Mock data for now
         tasks = [
-            Task(userId: UUID(), captureId: UUID(), type: .followUp, contactName: "Johnson Family", message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue."),
-            Task(userId: UUID(), captureId: UUID(), type: .reminder, contactName: "Supplier", message: "Remember to order drywall for the Williams project next week."),
-            Task(userId: UUID(), captureId: UUID(), type: .followUp, contactName: "Miller Family", message: "Hi! Just wanted to follow up about your deck project. When would be a good time to schedule the initial consultation?")
+            Task(userId: UUID(), captureId: UUID(), type: .followUpSMS, contactName: "Johnson Family", message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue.", originalTranscription: "Just finished the kitchen demo at the Johnson house"),
+            Task(userId: UUID(), captureId: UUID(), type: .reminderCall, contactName: "Supplier", message: "Remember to order drywall for the Williams project next week.", originalTranscription: "Need to order drywall for the Williams project next week"),
+            Task(userId: UUID(), captureId: UUID(), type: .followUpSMS, contactName: "Miller Family", message: "Hi! Just wanted to follow up about your deck project. When would be a good time to schedule the initial consultation?", originalTranscription: "Need to follow up with the Miller family about their deck project")
         ]
     }
     
