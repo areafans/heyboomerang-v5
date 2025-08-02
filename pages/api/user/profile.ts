@@ -58,14 +58,38 @@ export default async function handler(
     }
 
     if (req.method === 'GET') {
-      // Get user profile
-      const { data: userProfile, error } = await supabaseAdmin
+      // Get user profile, create if doesn't exist
+      let { data: userProfile, error } = await supabaseAdmin
         .from('users')
         .select('*')
         .eq('id', authUser.id)
         .single()
 
-      if (error) {
+      // If user doesn't exist, create them
+      if (error && error.code === 'PGRST116') { // Not found
+        const { data: newUser, error: createError } = await supabaseAdmin
+          .from('users')
+          .insert({
+            id: authUser.id,
+            email: authUser.email,
+            business_name: null,
+            business_type: null,
+            business_description: null,
+            subscription_status: 'trial',
+            trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .select()
+          .single()
+
+        if (createError) {
+          console.error('Profile creation error:', createError)
+          return res.status(500).json({ error: 'Failed to create user profile' })
+        }
+        
+        userProfile = newUser
+      } else if (error) {
         console.error('Profile lookup error:', error)
         return res.status(500).json({ error: 'Failed to get user profile' })
       }

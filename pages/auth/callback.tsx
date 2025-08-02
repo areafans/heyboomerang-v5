@@ -36,13 +36,12 @@ export default function AuthCallback() {
           return
         }
 
-        // Verify the token with our API and create user profile
-        const response = await fetch('/api/auth/verify-token', {
-          method: 'POST',
+        // Verify the token with our API and get/create user profile
+        const response = await fetch('/api/user/profile', {
+          method: 'GET',
           headers: {
-            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${accessToken}`,
           },
-          body: JSON.stringify({ token: accessToken }),
         })
 
         const data = await response.json()
@@ -55,13 +54,9 @@ export default function AuthCallback() {
             refreshToken: refreshToken || '',
             userId: data.user?.id || ''
           })
-
-          // Create user profile in our database if needed
-          await createUserProfile(accessToken, data.user)
-
         } else {
           setStatus('error')
-          setMessage(data.error || 'Token verification failed')
+          setMessage(data.error || 'Authentication failed')
         }
 
       } catch (error) {
@@ -77,39 +72,6 @@ export default function AuthCallback() {
     }
   }, [])
 
-  const createUserProfile = async (token: string, user: any) => {
-    try {
-      // Check if user exists in our database, create if not
-      const response = await fetch('/api/user/profile', {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      })
-
-      if (response.status === 401 || response.status === 404) {
-        // User doesn't exist, create them
-        const createResponse = await fetch('/api/user/profile', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            businessName: null,
-            businessType: null,
-            businessDescription: null,
-          }),
-        })
-
-        if (!createResponse.ok) {
-          console.error('Failed to create user profile')
-        }
-      }
-    } catch (error) {
-      console.error('Profile creation error:', error)
-    }
-  }
 
   const copyToClipboard = async (text: string) => {
     try {
