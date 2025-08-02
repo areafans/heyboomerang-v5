@@ -47,8 +47,7 @@ export default async function handler(
         message,
         timing,
         status,
-        created_at,
-        captures!inner(transcription)
+        created_at
       `)
       .eq('user_id', userId)
       .eq('status', 'pending')
@@ -70,7 +69,7 @@ export default async function handler(
       timing: task.timing as Task['timing'],
       status: task.status as Task['status'],
       createdAt: task.created_at,
-      originalTranscription: task.captures?.transcription || undefined
+      originalTranscription: undefined // Will fetch separately if needed
     }))
 
     res.status(200).json({
