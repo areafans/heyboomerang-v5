@@ -10,26 +10,45 @@ export default async function handler(
   }
 
   try {
-    const { code, error: authError } = req.query
+    const { code, error: authError, access_token, refresh_token } = req.query
 
     if (authError) {
       console.error('Auth callback error:', authError)
       return res.redirect('/auth/error?message=' + encodeURIComponent(authError as string))
     }
 
-    if (!code) {
-      return res.redirect('/auth/error?message=' + encodeURIComponent('No authorization code provided'))
+    let sessionData;
+
+    // Handle both PKCE flow (code) and implicit flow (access_token)
+    if (code) {
+      // PKCE flow - exchange code for session
+      const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(code as string)
+      if (error) {
+        console.error('Code exchange error:', error)
+        return res.redirect('/auth/error?message=' + encodeURIComponent(error.message))
+      }
+      sessionData = data
+    } else if (access_token) {
+      // Implicit flow - validate the access token
+      const { data: userData, error: userError } = await supabaseAdmin.auth.getUser(access_token as string)
+      if (userError) {
+        console.error('Token validation error:', userError)
+        return res.redirect('/auth/error?message=' + encodeURIComponent(userError.message))
+      }
+      sessionData = {
+        user: userData.user,
+        session: {
+          access_token: access_token as string,
+          refresh_token: refresh_token as string
+        }
+      }
+    } else {
+      return res.redirect('/auth/error?message=' + encodeURIComponent('No authorization code or token provided'))
     }
 
-    // Exchange code for session
-    const { data, error } = await supabaseAdmin.auth.exchangeCodeForSession(code as string)
+    const { user, session } = sessionData
 
-    if (error) {
-      console.error('Code exchange error:', error)
-      return res.redirect('/auth/error?message=' + encodeURIComponent(error.message))
-    }
-
-    if (!data.user) {
+    if (!user) {
       return res.redirect('/auth/error?message=' + encodeURIComponent('No user found'))
     }
 
@@ -37,7 +56,7 @@ export default async function handler(
     const { data: existingUser, error: userError } = await supabaseAdmin
       .from('users')
       .select('*')
-      .eq('id', data.user.id)
+      .eq('id', user.id)
       .single()
 
     if (userError && userError.code !== 'PGRST116') { // PGRST116 = not found
@@ -50,8 +69,8 @@ export default async function handler(
       const { error: createError } = await supabaseAdmin
         .from('users')
         .insert({
-          id: data.user.id,
-          email: data.user.email,
+          id: user.id,
+          email: user.email,
           business_name: null,
           business_type: null,
           business_description: null,
@@ -68,11 +87,11 @@ export default async function handler(
     }
 
     // Create session token for iOS app (you'll need this for API authentication)
-    const sessionToken = data.session?.access_token
+    const sessionToken = session?.access_token
 
     // For now, redirect to a success page with the token
     // In production, this would be handled by your iOS app's URL scheme
-    const successUrl = `/auth/success?token=${sessionToken}&user_id=${data.user.id}`
+    const successUrl = `/auth/success?token=${sessionToken}&user_id=${user.id}`
     
     res.redirect(successUrl)
 

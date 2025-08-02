@@ -33,11 +33,11 @@ export default async function handler(
       return res.status(400).json({ error: 'Invalid email format' })
     }
 
-    // Use Supabase Auth to send magic link
+    // Use Supabase Auth to send magic link with PKCE flow
     const { error } = await supabaseAdmin.auth.signInWithOtp({
       email: email.toLowerCase().trim(),
       options: {
-        emailRedirectTo: redirectTo || `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/auth/callback`,
+        emailRedirectTo: redirectTo || `https://heyboomerang-v5.vercel.app/auth/callback`,
         shouldCreateUser: true, // Create user if doesn't exist
       }
     })
