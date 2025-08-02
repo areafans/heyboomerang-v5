@@ -9,7 +9,7 @@ import SwiftUI
 
 struct TasksView: View {
     @Binding var pendingTasksCount: Int
-    @State private var pendingTasks: [Task] = []
+    @State private var pendingTasks: [AppTask] = []
     @State private var showingCardView = false
     @State private var selectedTaskIndex = 0
     
@@ -97,7 +97,7 @@ struct TasksView: View {
     
     private func loadMockTasks() {
         pendingTasks = [
-            Task(
+            AppTask(
                 userId: UUID(),
                 captureId: UUID(),
                 type: .followUpSMS,
@@ -105,7 +105,7 @@ struct TasksView: View {
                 message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue.",
                 originalTranscription: "Just finished the kitchen demo at the Johnson house"
             ),
-            Task(
+            AppTask(
                 userId: UUID(),
                 captureId: UUID(),
                 type: .reminderCall,
@@ -113,7 +113,7 @@ struct TasksView: View {
                 message: "Call supplier about drywall delivery for Williams project",
                 originalTranscription: "Need to order drywall for the Williams project next week"
             ),
-            Task(
+            AppTask(
                 userId: UUID(),
                 captureId: UUID(),
                 type: .campaign,
@@ -121,7 +121,7 @@ struct TasksView: View {
                 message: "Spring renovation special - 15% off all kitchen and bathroom projects through May!",
                 originalTranscription: "Running a spring special next month"
             ),
-            Task(
+            AppTask(
                 userId: UUID(),
                 captureId: UUID(),
                 type: .contactCRUD,
@@ -129,7 +129,7 @@ struct TasksView: View {
                 message: "Add new client: John Smith, phone: 555-0123, interested in deck renovation",
                 originalTranscription: "Add new client John Smith 555-0123 deck project"
             ),
-            Task(
+            AppTask(
                 userId: UUID(),
                 captureId: UUID(),
                 type: .emailSendReply,
@@ -143,7 +143,7 @@ struct TasksView: View {
 }
 
 struct TaskListRow: View {
-    let task: Task
+    let task: AppTask
     let onTap: () -> Void
     
     private var taskColor: Color {

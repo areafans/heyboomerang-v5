@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import UserNotifications
 
 struct PermissionsView: View {
     @Binding var isCompleted: Bool
@@ -13,6 +14,8 @@ struct PermissionsView: View {
     @State private var speechGranted = false
     @State private var notificationsGranted = false
     @State private var currentStep = 0
+    
+    private let voiceService = DependencyContainer.shared.voiceCaptureService
     
     private let permissions = [
         (
@@ -80,18 +83,46 @@ struct PermissionsView: View {
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
                 .frame(maxWidth: .infinity)
-                .disabled(!allPermissionsGranted)
                 
                 if !allPermissionsGranted {
-                    Text("Please enable all permissions to continue")
+                    VStack(spacing: 8) {
+                        Text("Some features may be limited without all permissions")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .multilineTextAlignment(.center)
+                        
+                        Button("Skip for Now") {
+                            withAnimation {
+                                isCompleted = true
+                            }
+                        }
                         .font(.caption)
-                        .foregroundColor(.secondary)
+                        .foregroundColor(.blue)
+                    }
                 }
             }
             .padding(.horizontal, 32)
             .padding(.bottom, 50)
         }
         .padding(.top, 20)
+        .onAppear {
+            checkCurrentPermissionStatus()
+        }
+    }
+    
+    private func checkCurrentPermissionStatus() {
+        // Check microphone permission
+        microphoneGranted = voiceService.getMicrophonePermissionStatus()
+        
+        // Check speech recognition permission
+        speechGranted = voiceService.getSpeechRecognitionPermissionStatus()
+        
+        // Check notification permission
+        UNUserNotificationCenter.current().getNotificationSettings { settings in
+            DispatchQueue.main.async {
+                notificationsGranted = settings.authorizationStatus == .authorized
+            }
+        }
     }
     
     private func getPermissionStatus(for index: Int) -> Bool {
@@ -108,14 +139,44 @@ struct PermissionsView: View {
     }
     
     private func requestPermission(at index: Int, systemPrompt: String) {
-        // Mock permission request - in real app this would trigger system dialogs
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-            withAnimation {
-                switch index {
-                case 0: microphoneGranted = true
-                case 1: speechGranted = true
-                case 2: notificationsGranted = true
-                default: break
+        Task {
+            switch index {
+            case 0: // Microphone
+                let result = await voiceService.requestMicrophonePermission()
+                await MainActor.run {
+                    withAnimation {
+                        microphoneGranted = (try? result.get()) == true
+                    }
+                }
+            case 1: // Speech Recognition
+                let result = await voiceService.requestSpeechRecognitionPermission()
+                await MainActor.run {
+                    withAnimation {
+                        speechGranted = (try? result.get()) == true
+                    }
+                }
+            case 2: // Notifications
+                await requestNotificationPermission()
+            default:
+                break
+            }
+        }
+    }
+    
+    private func requestNotificationPermission() async {
+        do {
+            let granted = try await UNUserNotificationCenter.current().requestAuthorization(
+                options: [.alert, .badge, .sound]
+            )
+            await MainActor.run {
+                withAnimation {
+                    notificationsGranted = granted
+                }
+            }
+        } catch {
+            await MainActor.run {
+                withAnimation {
+                    notificationsGranted = false
                 }
             }
         }

@@ -8,12 +8,12 @@
 import SwiftUI
 
 struct TaskCardStackView: View {
-    @Binding var tasks: [Task]
+    @Binding var tasks: [AppTask]
     @State private var currentIndex: Int
     @Binding var pendingTasksCount: Int
     @Environment(\.dismiss) private var dismiss
     
-    init(tasks: Binding<[Task]>, startingIndex: Int, pendingTasksCount: Binding<Int>) {
+    init(tasks: Binding<[AppTask]>, startingIndex: Int, pendingTasksCount: Binding<Int>) {
         self._tasks = tasks
         self._currentIndex = State(initialValue: startingIndex)
         self._pendingTasksCount = pendingTasksCount
@@ -181,7 +181,7 @@ enum TaskAction {
 }
 
 struct TaskCard: View {
-    let task: Task
+    let task: AppTask
     let onAction: (TaskAction) -> Void
     
     private var taskColor: Color {
@@ -336,7 +336,7 @@ struct SecondaryActionButtonStyle: ButtonStyle {
 #Preview {
     TaskCardStackView(
         tasks: .constant([
-            Task(
+            AppTask(
                 userId: UUID(),
                 captureId: UUID(),
                 type: .followUpSMS,

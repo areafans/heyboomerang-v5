@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct Task: Codable, Identifiable {
+struct AppTask: Codable, Identifiable {
     let id: UUID
     let userId: UUID
     let captureId: UUID
