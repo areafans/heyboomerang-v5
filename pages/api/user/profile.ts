@@ -67,6 +67,8 @@ export default async function handler(
 
       // If user doesn't exist, create them
       if (error && error.code === 'PGRST116') { // Not found
+        console.log('Creating new user profile for:', authUser.id, authUser.email)
+        
         const { data: newUser, error: createError } = await supabaseAdmin
           .from('users')
           .insert({
@@ -75,6 +77,8 @@ export default async function handler(
             business_name: null,
             business_type: null,
             business_description: null,
+            phone_number: null,
+            timezone: 'America/New_York',
             subscription_status: 'trial',
             trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
             created_at: new Date().toISOString(),
@@ -85,9 +89,14 @@ export default async function handler(
 
         if (createError) {
           console.error('Profile creation error:', createError)
-          return res.status(500).json({ error: 'Failed to create user profile' })
+          console.error('Error details:', JSON.stringify(createError, null, 2))
+          return res.status(500).json({ 
+            error: 'Failed to create user profile',
+            details: createError.message 
+          })
         }
         
+        console.log('User profile created successfully:', newUser)
         userProfile = newUser
       } else if (error) {
         console.error('Profile lookup error:', error)
