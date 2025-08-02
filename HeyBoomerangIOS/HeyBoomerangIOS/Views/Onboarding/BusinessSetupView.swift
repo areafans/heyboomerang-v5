@@ -12,156 +12,129 @@ struct BusinessSetupView: View {
     @State private var userName = ""
     @State private var businessName = ""
     @State private var businessDescription = ""
-    @State private var currentStep = 0
+    @FocusState private var focusedField: Field?
+    
+    enum Field {
+        case userName, businessName, businessDescription
+    }
     
     var body: some View {
-        VStack(spacing: 30) {
-            // Progress Indicator
-            HStack {
-                ForEach(0..<3, id: \.self) { step in
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(step <= currentStep ? Color.blue : Color.gray.opacity(0.3))
-                        .frame(height: 4)
-                        .animation(.easeInOut, value: currentStep)
+        ScrollView {
+            VStack(spacing: 32) {
+                // Header
+                VStack(spacing: 16) {
+                    Image(systemName: "storefront.fill")
+                        .font(.system(size: 50))
+                        .foregroundColor(.blue)
+                        .symbolRenderingMode(.hierarchical)
+                    
+                    Text("Set up your business")
+                        .font(.title)
+                        .fontWeight(.bold)
+                    
+                    Text("Help us personalize your experience and generate better follow-ups")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 20)
                 }
-            }
-            .padding(.horizontal)
-            
-            // Header
-            VStack(spacing: 16) {
-                Text("Set up your business")
-                    .font(.largeTitle)
-                    .fontWeight(.bold)
+                .padding(.top, 20)
                 
-                Text("This helps us personalize your experience and generate better follow-ups")
-                    .font(.body)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            
-            Spacer()
-            
-            // Form Steps
-            Group {
-                switch currentStep {
-                case 0:
-                    userNameStep
-                case 1:
-                    businessNameStep
-                case 2:
-                    businessDescriptionStep
-                default:
-                    EmptyView()
-                }
-            }
-            .animation(.easeInOut, value: currentStep)
-            
-            Spacer()
-            
-            // Navigation Buttons
-            HStack(spacing: 16) {
-                if currentStep > 0 {
-                    Button("Back") {
-                        withAnimation {
-                            currentStep -= 1
-                        }
+                // Form Fields
+                VStack(spacing: 20) {
+                    // Name Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Your Name")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        TextField("Enter your name", text: $userName)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.body)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled(true)
+                            .focused($focusedField, equals: .userName)
+                            .submitLabel(.next)
+                            .onSubmit {
+                                focusedField = .businessName
+                            }
                     }
-                    .buttonStyle(.bordered)
-                    .frame(maxWidth: .infinity)
+                    
+                    // Business Name Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Business Name")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        TextField("Enter your business name", text: $businessName)
+                            .textFieldStyle(.roundedBorder)
+                            .font(.body)
+                            .textInputAutocapitalization(.words)
+                            .autocorrectionDisabled(true)
+                            .focused($focusedField, equals: .businessName)
+                            .submitLabel(.next)
+                            .onSubmit {
+                                focusedField = .businessDescription
+                            }
+                    }
+                    
+                    // Business Description Field
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("What does your business do?")
+                            .font(.headline)
+                            .foregroundColor(.primary)
+                        
+                        Text("Help us understand your business so we can generate relevant follow-ups")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                        
+                        TextField("e.g., We're a general contracting company specializing in home renovations and kitchen remodels", text: $businessDescription, axis: .vertical)
+                            .textFieldStyle(.roundedBorder)
+                            .lineLimit(3...5)
+                            .font(.body)
+                            .textInputAutocapitalization(.sentences)
+                            .autocorrectionDisabled(true)
+                            .focused($focusedField, equals: .businessDescription)
+                    }
                 }
+                .padding(.horizontal, 24)
                 
-                Button(currentStep == 2 ? "Complete Setup" : "Continue") {
-                    if currentStep == 2 {
-                        completeSetup()
-                    } else {
-                        withAnimation {
-                            currentStep += 1
-                        }
-                    }
+                // Continue Button
+                Button("Continue") {
+                    completeSetup()
                 }
                 .buttonStyle(.borderedProminent)
+                .controlSize(.large)
                 .frame(maxWidth: .infinity)
                 .disabled(!canContinue)
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
             }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 50)
+            .padding(.bottom, 100) // Extra padding for keyboard
         }
-        .padding(.top, 20)
-    }
-    
-    private var userNameStep: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "person.circle.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-            
-            VStack(spacing: 16) {
-                Text("What's your name?")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                
-                TextField("Your name", text: $userName)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.title3)
-                    .padding(.horizontal, 32)
-            }
+        .scrollDismissesKeyboard(.interactively)
+        .onTapGesture {
+            focusedField = nil
         }
-    }
-    
-    private var businessNameStep: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "storefront.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-            
-            VStack(spacing: 16) {
-                Text("What's the name of your business, \(userName)?")
-                    .font(.title2)
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                if focusedField == .businessDescription {
+                    Spacer()
+                    Button("Done") {
+                        // Just dismiss keyboard - let user see form and manually tap Continue
+                        focusedField = nil
+                    }
+                    .foregroundColor(.blue)
                     .fontWeight(.semibold)
-                    .multilineTextAlignment(.center)
-                
-                TextField("Business name", text: $businessName)
-                    .textFieldStyle(.roundedBorder)
-                    .font(.title3)
-                    .padding(.horizontal, 32)
-            }
-        }
-    }
-    
-    private var businessDescriptionStep: some View {
-        VStack(spacing: 24) {
-            Image(systemName: "text.bubble.fill")
-                .font(.system(size: 60))
-                .foregroundColor(.blue)
-            
-            VStack(spacing: 16) {
-                Text("Will you describe \(businessName)?")
-                    .font(.title2)
-                    .fontWeight(.semibold)
-                    .multilineTextAlignment(.center)
-                
-                Text("Tell us what you do - we'll use this to personalize your experience")
-                    .font(.subheadline)
-                    .foregroundColor(.secondary)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-                
-                TextField("e.g., We're a general contracting company specializing in home renovations and kitchen remodels", text: $businessDescription, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
-                    .lineLimit(3...6)
-                    .padding(.horizontal, 32)
+                }
             }
         }
     }
     
     private var canContinue: Bool {
-        switch currentStep {
-        case 0: return !userName.isEmpty
-        case 1: return !businessName.isEmpty
-        case 2: return !businessDescription.isEmpty
-        default: return false
-        }
+        !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !businessName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !businessDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
     
     private func completeSetup() {
@@ -171,6 +144,10 @@ struct BusinessSetupView: View {
         print("Business: \(businessName)")
         print("Description: \(businessDescription)")
         
+        // Dismiss keyboard first
+        focusedField = nil
+        
+        // Complete setup with animation
         withAnimation {
             isCompleted = true
         }

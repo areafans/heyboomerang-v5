@@ -153,15 +153,23 @@ struct PermissionRow: View {
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 
                 Spacer()
                 
-                // Status
-                if !isGranted {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(.secondary)
+                // Status - Always reserve space for consistent layout
+                Group {
+                    if isGranted {
+                        // Invisible spacer to maintain layout consistency
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.clear)
+                    } else {
+                        Image(systemName: "chevron.right")
+                            .foregroundColor(.secondary)
+                    }
                 }
+                .frame(width: 20) // Fixed width for consistency
             }
             .padding()
             .background(Color(.systemGray6))

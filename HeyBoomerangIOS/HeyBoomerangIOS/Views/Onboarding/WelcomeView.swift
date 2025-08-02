@@ -22,12 +22,8 @@ struct WelcomeView: View {
         VStack(spacing: 40) {
             Spacer()
             
-            // Logo/Brand Area
+            // Brand Area
             VStack(spacing: 16) {
-                Image(systemName: "boomerang.fill")
-                    .font(.system(size: 60))
-                    .foregroundColor(.blue)
-                
                 Text("Boomerang")
                     .font(.largeTitle)
                     .fontWeight(.bold)
@@ -98,7 +94,7 @@ struct WelcomeView: View {
     }
     
     private func startFeatureCarousel() {
-        Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { _ in
+        Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { _ in
             withAnimation(.easeInOut) {
                 currentStep = (currentStep + 1) % features.count
             }
