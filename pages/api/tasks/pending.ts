@@ -1,4 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
+import { supabaseAdmin } from '@/lib/supabase'
 
 type Task = {
   id: string
@@ -34,49 +35,48 @@ export default async function handler(
       return res.status(400).json({ error: 'Missing userId parameter' })
     }
 
-    // TODO: Replace with actual database query
-    // For now, return mock pending tasks
-    const mockTasks: Task[] = [
-      {
-        id: 'task_001',
-        type: 'follow_up',
-        contactName: 'Sarah Johnson',
-        contactPhone: '+1555123456',
-        message: 'Hi Sarah, thanks for discussing the kitchen renovation today. I\'ll send over the estimate by tomorrow morning.',
-        timing: 'tomorrow',
-        status: 'pending',
-        createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
-        originalTranscription: 'Call Sarah about kitchen estimate tomorrow'
-      },
-      {
-        id: 'task_002',
-        type: 'reminder',
-        contactName: 'Mike Davis',
-        contactEmail: 'mike@example.com',
-        message: 'Hi Mike, just a reminder that we\'re scheduled to start the deck project next Monday at 8 AM.',
-        timing: 'end_of_day',
-        status: 'pending',
-        createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString(), // 4 hours ago
-        originalTranscription: 'Remind Mike about deck project starting Monday'
-      },
-      {
-        id: 'task_003',
-        type: 'campaign',
-        contactName: 'Lisa Chen',
-        contactPhone: '+1555987654',
-        contactEmail: 'lisa@example.com',
-        message: 'Hi Lisa, hope you\'re enjoying your new bathroom! If you know anyone else who might need renovation work, I\'d appreciate the referral.',
-        timing: 'next_week',
-        status: 'pending',
-        createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString(), // 6 hours ago
-        originalTranscription: 'Follow up with Lisa for referrals next week'
-      }
-    ]
+    // Query pending tasks from database
+    const { data: tasksData, error } = await supabaseAdmin
+      .from('tasks')
+      .select(`
+        id,
+        task_type,
+        contact_name,
+        contact_phone,
+        contact_email,
+        message,
+        timing,
+        status,
+        created_at,
+        captures!inner(transcription)
+      `)
+      .eq('user_id', userId)
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Database error:', error)
+      return res.status(500).json({ error: 'Database query failed' })
+    }
+
+    // Transform database results to match API format
+    const tasks: Task[] = (tasksData || []).map(task => ({
+      id: task.id,
+      type: task.task_type as Task['type'],
+      contactName: task.contact_name,
+      contactPhone: task.contact_phone || undefined,
+      contactEmail: task.contact_email || undefined,
+      message: task.message,
+      timing: task.timing as Task['timing'],
+      status: task.status as Task['status'],
+      createdAt: task.created_at,
+      originalTranscription: task.captures?.transcription || undefined
+    }))
 
     res.status(200).json({
       success: true,
-      tasks: mockTasks,
-      count: mockTasks.length
+      tasks,
+      count: tasks.length
     })
 
   } catch (error) {
