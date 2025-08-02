@@ -9,9 +9,7 @@ import SwiftUI
 
 struct BusinessSetupView: View {
     @Binding var isCompleted: Bool
-    @State private var userName = ""
-    @State private var businessName = ""
-    @State private var businessDescription = ""
+    @ObservedObject var onboardingData: OnboardingData
     @FocusState private var focusedField: Field?
     @State private var isKeyboardVisible = false
     
@@ -50,7 +48,7 @@ struct BusinessSetupView: View {
                             .font(.headline)
                             .foregroundColor(.primary)
                         
-                        TextField("Enter your name", text: $userName)
+                        TextField("Enter your name", text: $onboardingData.userName)
                             .textFieldStyle(.roundedBorder)
                             .font(.body)
                             .textInputAutocapitalization(.words)
@@ -68,7 +66,7 @@ struct BusinessSetupView: View {
                             .font(.headline)
                             .foregroundColor(.primary)
                         
-                        TextField("Enter your business name", text: $businessName)
+                        TextField("Enter your business name", text: $onboardingData.businessName)
                             .textFieldStyle(.roundedBorder)
                             .font(.body)
                             .textInputAutocapitalization(.words)
@@ -90,7 +88,7 @@ struct BusinessSetupView: View {
                             .font(.caption)
                             .foregroundColor(.secondary)
                         
-                        TextField("e.g., We're a general contracting company specializing in home renovations and kitchen remodels", text: $businessDescription, axis: .vertical)
+                        TextField("e.g., We're a general contracting company specializing in home renovations and kitchen remodels", text: $onboardingData.businessDescription, axis: .vertical)
                             .textFieldStyle(.roundedBorder)
                             .lineLimit(3...5)
                             .font(.body)
@@ -160,17 +158,15 @@ struct BusinessSetupView: View {
     }
     
     private var canContinue: Bool {
-        !userName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !businessName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        !businessDescription.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        onboardingData.hasBusinessInfo
     }
     
     private func completeSetup() {
-        // Mock saving business data
+        // Business data is already stored in onboardingData
         print("Business Setup Complete:")
-        print("User: \(userName)")
-        print("Business: \(businessName)")
-        print("Description: \(businessDescription)")
+        print("User: \(onboardingData.userName)")
+        print("Business: \(onboardingData.businessName)")
+        print("Description: \(onboardingData.businessDescription)")
         
         // Dismiss keyboard first
         focusedField = nil
@@ -183,5 +179,5 @@ struct BusinessSetupView: View {
 }
 
 #Preview {
-    BusinessSetupView(isCompleted: .constant(false))
+    BusinessSetupView(isCompleted: .constant(false), onboardingData: OnboardingData())
 }

@@ -11,11 +11,14 @@ struct OnboardingContainerView: View {
     @Binding var showOnboarding: Bool
     @State private var currentScreen: OnboardingScreen = .welcome
     @State private var businessSetupCompleted = false
+    @State private var emailAuthCompleted = false
     @State private var permissionsCompleted = false
+    @StateObject private var onboardingData = OnboardingData()
     
     enum OnboardingScreen {
         case welcome
         case businessSetup
+        case emailAuth
         case permissions
     }
     
@@ -31,8 +34,18 @@ struct OnboardingContainerView: View {
                     }
                 
                 case .businessSetup:
-                    BusinessSetupView(isCompleted: $businessSetupCompleted)
+                    BusinessSetupView(isCompleted: $businessSetupCompleted, onboardingData: onboardingData)
                         .onChange(of: businessSetupCompleted) { _, completed in
+                            if completed {
+                                withAnimation {
+                                    currentScreen = .emailAuth
+                                }
+                            }
+                        }
+                
+                case .emailAuth:
+                    EmailAuthView(isCompleted: $emailAuthCompleted, onboardingData: onboardingData)
+                        .onChange(of: emailAuthCompleted) { _, completed in
                             if completed {
                                 withAnimation {
                                     currentScreen = .permissions
