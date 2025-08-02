@@ -71,7 +71,6 @@ struct DashboardView: View {
                     .fontWeight(.semibold)
                 Spacer()
             }
-            .padding(.horizontal, 20)
             
             VStack(spacing: 8) {
                 // Messages crafted card
@@ -90,7 +89,6 @@ struct DashboardView: View {
                     backgroundColor: Color.orange.opacity(0.1)
                 )
             }
-            .padding(.horizontal, 20)
         }
     }
     
