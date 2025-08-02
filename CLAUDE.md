@@ -42,11 +42,13 @@ Key tables: `users`, `contacts`, `captures`, `tasks`, `messages`, `user_context`
 
 ## Development Commands
 
-Since this is a planning-stage project with only a PRD document, no build/test/lint commands are available yet. The codebase will likely include:
+**iOS Project (Current):**
+- Build and run: Open `HeyBoomerangIOS.xcodeproj` in Xcode and use Cmd+R
+- iOS Simulator testing available for all UI functionality
+- No specific lint/test commands configured yet - standard Xcode build process
 
-**When implemented:**
-- iOS project: Standard Xcode build commands
-- Backend: `npm run dev`, `npm run build`, `npm test`, `npm run lint`
+**Backend (Planned):**
+- `npm run dev`, `npm run build`, `npm test`, `npm run lint`
 - Database: Supabase CLI commands for migrations
 
 ## Key API Endpoints (Planned)
@@ -78,10 +80,11 @@ The app maintains intelligent context for each user:
 
 ## iOS App Key Screens
 
-1. **Main Screen**: Large microphone button, capture counter, daily summary
-2. **Task Review**: Group summary → individual task verification → contact details → timing selection
-3. **Dashboard**: Weekly metrics, top contacts, completion rates
-4. **Settings**: Business info, notifications, subscription
+1. **Voice Capture**: Large microphone button with press-and-hold, capture counter, transcription preview
+2. **Summary**: Morning results with impact cards, hot leads, and message delivery status
+3. **Tasks**: Evening review of pending tasks with tap-to-review interface
+4. **Dashboard**: AI-powered business growth story with performance metrics and smart insights
+5. **Profile**: User settings, business info, subscription status, and app preferences
 
 ## Development Phases
 
@@ -190,6 +193,25 @@ The app maintains intelligent context for each user:
 2. Then **Phase 2.1-2.3** - Add real voice capture (core functionality)
 3. Then **Phase 3** polish for user testing readiness
 
+## Recent UI Improvements (Completed)
+
+**Navigation & Branding Consistency:**
+- Replaced redundant large navigation titles with unified "Boomerang" branding
+- Applied consistent `.navigationBarTitleDisplayMode(.inline)` across all views
+- Added translucent material backgrounds (`.regularMaterial`) for professional look
+- Standardized VStack spacing to 40pt for page headers (matching Capture page)
+
+**Dashboard Transformation:**
+- Complete redesign from basic metrics to AI-focused business growth story
+- Added "At a Glance", "Business Impact", "AI Performance", and "AI Insights" sections
+- Implemented shared component architecture (ImpactCard, BusinessImpactCard, etc.)
+- Fixed section alignment issues by removing internal padding conflicts
+
+**Page Header Consistency:**
+- Applied Capture page header style across Summary, Tasks, and Dashboard
+- Removed duplicate icons and section headers for cleaner design
+- Standardized spacing and typography for consistent user experience
+
 ## Development Methodology
 
 **Current Phase: Polished Clickable Prototype**
@@ -231,3 +253,7 @@ The app maintains intelligent context for each user:
 - Haptic feedback on interactions
 - Spring animations for smooth transitions
 - Press-and-hold voice capture with visual feedback
+- Unified "Boomerang" navigation branding across all views
+- Consistent page header spacing (40pt VStack) matching Capture page style
+- AI-powered Dashboard with business growth story and automation focus
+- Proper section alignment using shared component architecture
