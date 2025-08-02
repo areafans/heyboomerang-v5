@@ -8,89 +8,31 @@
 import SwiftUI
 
 struct DashboardView: View {
-    // Mock metrics data
+    // Mock AI performance data
+    @State private var monthlyRevenue = 18750
     @State private var weeklyMessages = 23
-    @State private var monthlyMessages = 87
-    @State private var completionRate = 0.84
-    @State private var topContacts = ["Johnson Family", "Miller Family", "Williams Project"]
+    @State private var aiSuccessRate = 0.89
+    @State private var responseRate = 0.34
+    @State private var aiLearningScore = 0.92
+    @State private var automationSavings = 12.5 // hours per week
+    
+    private var userName = "Mike" // In real app, would come from user data
     
     var body: some View {
         NavigationView {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Weekly Overview
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("This Week")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        HStack(spacing: 20) {
-                            MetricCard(
-                                title: "Messages Sent",
-                                value: "\(weeklyMessages)",
-                                subtitle: "This week",
-                                color: .blue
-                            )
-                            
-                            MetricCard(
-                                title: "Completion Rate",
-                                value: "\(Int(completionRate * 100))%",
-                                subtitle: "Tasks approved",
-                                color: .green
-                            )
-                        }
-                    }
+                VStack(spacing: 28) {
+                    // AI Hero Section
+                    aiHeroSection
                     
-                    // Monthly Overview
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("This Month")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        MetricCard(
-                            title: "Total Messages",
-                            value: "\(monthlyMessages)",
-                            subtitle: "Messages sent this month",
-                            color: .purple,
-                            fullWidth: true
-                        )
-                    }
+                    // Business Impact Cards
+                    businessImpactSection
                     
-                    // Top Contacts
-                    VStack(alignment: .leading, spacing: 16) {
-                        Text("Top Contacts")
-                            .font(.headline)
-                            .foregroundColor(.secondary)
-                        
-                        VStack(spacing: 12) {
-                            ForEach(Array(topContacts.enumerated()), id: \.offset) { index, contact in
-                                HStack {
-                                    Text("\(index + 1)")
-                                        .font(.headline)
-                                        .foregroundColor(.blue)
-                                        .frame(width: 24)
-                                    
-                                    Text(contact)
-                                        .font(.body)
-                                    
-                                    Spacer()
-                                    
-                                    Text("\(Int.random(in: 3...8)) messages")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.vertical, 8)
-                                
-                                if index < topContacts.count - 1 {
-                                    Divider()
-                                }
-                            }
-                        }
-                        .padding(16)
-                        .background(Color(.systemBackground))
-                        .cornerRadius(12)
-                        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-                    }
+                    // AI Performance Section
+                    aiPerformanceSection
+                    
+                    // Smart Insights Section
+                    smartInsightsSection
                     
                     Spacer(minLength: 100)
                 }
@@ -100,39 +42,289 @@ struct DashboardView: View {
             .navigationBarTitleDisplayMode(.large)
         }
     }
+    
+    // MARK: - AI Hero Section
+    private var aiHeroSection: some View {
+        VStack(spacing: 12) {
+            HStack {
+                Image(systemName: "brain.head.profile")
+                    .foregroundColor(.purple)
+                    .font(.title2)
+                Text("Your AI Assistant")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                Spacer()
+            }
+            
+            VStack(alignment: .leading, spacing: 8) {
+                Text("While you focus on your business, your AI has been working...")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "sparkles")
+                        .foregroundColor(.purple)
+                        .font(.caption)
+                    Text("\(weeklyMessages) messages crafted with your unique voice")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+                
+                HStack(spacing: 4) {
+                    Image(systemName: "target")
+                        .foregroundColor(.orange)
+                        .font(.caption)
+                    Text("\(Int(responseRate * 100))% of clients responded positively")
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                }
+            }
+            .padding(16)
+            .background(Color.purple.opacity(0.08))
+            .cornerRadius(12)
+        }
+    }
+    
+    // MARK: - Business Impact Section  
+    private var businessImpactSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Image(systemName: "chart.line.uptrend.xyaxis")
+                    .foregroundColor(.green)
+                Text("Business Impact")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                // Revenue Impact Card
+                BusinessImpactCard(
+                    icon: "dollarsign.circle.fill",
+                    iconColor: .green,
+                    title: "Revenue Pipeline",
+                    value: "$\(monthlyRevenue)",
+                    subtitle: "Potential bookings this month",
+                    backgroundColor: Color.green.opacity(0.1)
+                )
+                
+                HStack(spacing: 12) {
+                    // Time Savings Card
+                    BusinessImpactCard(
+                        icon: "clock.fill",
+                        iconColor: .blue,
+                        title: "Time Saved",
+                        value: "\(String(format: "%.1f", automationSavings))h",
+                        subtitle: "Per week",
+                        backgroundColor: Color.blue.opacity(0.1),
+                        isCompact: true
+                    )
+                    
+                    // Response Rate Card
+                    BusinessImpactCard(
+                        icon: "bubble.right.fill",
+                        iconColor: .orange,
+                        title: "Response Rate",
+                        value: "\(Int(responseRate * 100))%",
+                        subtitle: "Client engagement",
+                        backgroundColor: Color.orange.opacity(0.1),
+                        isCompact: true
+                    )
+                }
+            }
+        }
+    }
+    
+    // MARK: - AI Performance Section
+    private var aiPerformanceSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Image(systemName: "cpu")
+                    .foregroundColor(.purple)
+                Text("AI Performance")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+            
+            VStack(spacing: 12) {
+                // AI Success Rate
+                AIPerformanceRow(
+                    icon: "checkmark.seal.fill",
+                    iconColor: .green,
+                    title: "Task Generation Accuracy",
+                    percentage: aiSuccessRate,
+                    subtitle: "Messages approved without edits"
+                )
+                
+                // Learning Progress
+                AIPerformanceRow(
+                    icon: "graduationcap.fill",
+                    iconColor: .blue,
+                    title: "Learning Progress",
+                    percentage: aiLearningScore,
+                    subtitle: "Understanding your business style"
+                )
+                
+                // Automation Efficiency
+                AIPerformanceRow(
+                    icon: "gearshape.2.fill",
+                    iconColor: .orange,
+                    title: "Automation Efficiency",
+                    percentage: 0.95,
+                    subtitle: "Zero manual follow-ups needed"
+                )
+            }
+            .padding(16)
+            .background(Color(.systemGray6))
+            .cornerRadius(12)
+        }
+    }
+    
+    // MARK: - Smart Insights Section
+    private var smartInsightsSection: some View {
+        VStack(spacing: 16) {
+            HStack {
+                Image(systemName: "lightbulb.fill")
+                    .foregroundColor(.yellow)
+                Text("AI Insights")
+                    .font(.headline)  
+                    .fontWeight(.semibold)
+                Spacer()
+            }
+            
+            VStack(spacing: 8) {
+                SmartInsightCard(
+                    insight: "Your Tuesday morning messages get 47% more responses",
+                    actionable: true
+                )
+                
+                SmartInsightCard(
+                    insight: "Follow-ups mentioning 'timeline' convert 3x better",
+                    actionable: false
+                )
+                
+                SmartInsightCard(
+                    insight: "Johnson Family responds fastest to casual tone messages",
+                    actionable: false
+                )
+            }
+        }
+    }
 }
 
-struct MetricCard: View {
+// MARK: - Supporting Views
+
+struct BusinessImpactCard: View {
+    let icon: String
+    let iconColor: Color
     let title: String
     let value: String
     let subtitle: String
-    let color: Color
-    var fullWidth: Bool = false
+    let backgroundColor: Color
+    var isCompact: Bool = false
     
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(title)
-                .font(.subheadline)
-                .foregroundColor(.secondary)
+            HStack {
+                Image(systemName: icon)
+                    .foregroundColor(iconColor)
+                    .font(.system(size: isCompact ? 16 : 18))
+                Spacer()
+            }
             
             Text(value)
-                .font(.largeTitle)
+                .font(isCompact ? .title2 : .largeTitle)
                 .fontWeight(.bold)
-                .foregroundColor(color)
+                .foregroundColor(.primary)
             
-            Text(subtitle)
-                .font(.caption)
-                .foregroundColor(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(.primary)
+                
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
         }
-        .frame(maxWidth: fullWidth ? .infinity : nil, alignment: .leading)
-        .padding(16)
-        .background(Color(.systemBackground))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(isCompact ? 12 : 16)
+        .background(backgroundColor)
         .cornerRadius(12)
-        .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
-        .overlay(
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(color.opacity(0.2), lineWidth: 1)
-        )
+    }
+}
+
+struct AIPerformanceRow: View {
+    let icon: String
+    let iconColor: Color
+    let title: String
+    let percentage: Double
+    let subtitle: String
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .foregroundColor(iconColor)
+                .font(.system(size: 16, weight: .semibold))
+                .frame(width: 20)
+            
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Text(subtitle)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            
+            Spacer()
+            
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(Int(percentage * 100))%")
+                    .font(.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(iconColor)
+                
+                // Progress bar
+                ProgressView(value: percentage)
+                    .progressViewStyle(LinearProgressViewStyle(tint: iconColor))
+                    .frame(width: 60)
+            }
+        }
+    }
+}
+
+struct SmartInsightCard: View {
+    let insight: String
+    let actionable: Bool
+    
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: actionable ? "star.fill" : "info.circle.fill")
+                .foregroundColor(actionable ? .yellow : .blue)
+                .font(.system(size: 14))
+            
+            Text(insight)
+                .font(.subheadline)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            Spacer()
+            
+            if actionable {
+                Image(systemName: "arrow.right.circle")
+                    .foregroundColor(.secondary)
+                    .font(.system(size: 16))
+            }
+        }
+        .padding(12)
+        .background(Color(.systemBackground))
+        .cornerRadius(8)
+        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
     }
 }
 
