@@ -227,36 +227,48 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     
     private func stopRealRecording() async -> Result<String, AppError> {
         // Prevent multiple calls to stop recording
-        let wasRecording = await MainActor.run {
-            guard isRecording else { return false }
+        let (wasRecording, currentTranscription) = await MainActor.run {
+            guard isRecording else { return (false, transcription) }
             isRecording = false
-            return true
+            return (true, transcription)
         }
         
         guard wasRecording else {
             Logger.shared.debug("Stop recording called but not currently recording", category: .voiceCapture)
-            return .success(transcription) // Return whatever transcription we have
+            return .success(currentTranscription) // Return whatever transcription we have
         }
         
         // Cancel timer to prevent it from calling stop again
         recordingTimer?.invalidate()
         recordingTimer = nil
         
+        Logger.shared.debug("Stopping recording, current transcription: '\(currentTranscription)'", category: .voiceCapture)
+        
+        // If we already have a transcription, return it immediately
+        if !currentTranscription.isEmpty {
+            Logger.shared.info("Using existing transcription: '\(currentTranscription)'", category: .voiceCapture)
+            
+            // End audio and stop engine
+            recognitionRequest?.endAudio()
+            audioEngine?.stop()
+            
+            return .success(currentTranscription)
+        }
+        
         // IMPORTANT: Don't stop audio engine immediately - let speech recognition finish
         recognitionRequest?.endAudio()
-        
-        // Capture current transcription state before we start waiting
-        let currentTranscription = await MainActor.run { transcription }
-        Logger.shared.debug("Stopping recording, current transcription: '\(currentTranscription)'", category: .voiceCapture)
         
         // Wait for final transcription result - give speech recognition time to process
         return await withCheckedContinuation { continuation in
             // Check multiple times with shorter intervals for better responsiveness
             var checkCount = 0
-            let maxChecks = 8 // Check 8 times over 2 seconds
+            let maxChecks = 12 // Check 12 times over 3 seconds (increased timeout)
+            var hasResumed = false
             
             func checkForFinalTranscription() {
                 Task { @MainActor in
+                    guard !hasResumed else { return }
+                    
                     let latestTranscription = self.transcription
                     checkCount += 1
                     
@@ -269,6 +281,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                         // Now stop the audio engine
                         self.audioEngine?.stop()
                         
+                        hasResumed = true
                         continuation.resume(returning: .success(latestTranscription))
                         return
                     }
@@ -282,6 +295,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                         
                         let error = AppError.voiceCapture(.transcriptionFailed)
                         self.currentError = error
+                        hasResumed = true
                         continuation.resume(returning: .failure(error))
                         return
                     }
@@ -373,7 +387,14 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                     
                     // Only update if we have actual text (iOS 17+ bug workaround)
                     if !newTranscription.isEmpty {
-                        self.transcription = newTranscription
+                        // Ensure UI updates happen on MainActor
+                        if Thread.isMainThread {
+                            self.transcription = newTranscription
+                        } else {
+                            DispatchQueue.main.async {
+                                self.transcription = newTranscription
+                            }
+                        }
                         Logger.shared.debug("Updated transcription: '\(newTranscription)'", category: .voiceCapture)
                     }
                     

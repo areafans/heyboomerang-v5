@@ -2,27 +2,54 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 📋 **MUST READ: Complete Project Documentation**
+
+**For comprehensive project details, architecture, and requirements, see:**
+- **[boomerang-v5-prd.md](./boomerang-v5-prd.md)** - Complete Product Requirements Document
+- This CLAUDE.md file - Development guidance and current status
+
 ## 🚨 CRITICAL: Current Project Status (Updated August 2025)
 
 **IMPORTANT: The iOS app is essentially COMPLETE and production-ready.** This is NOT an early prototype - it's a sophisticated, mature iOS application with 39+ Swift files, complete user flows, and advanced architecture.
 
 **BEFORE starting any work:**
-1. **Read the Current State section below** to understand we have a complete iOS app
-2. **Focus on backend development** - that's the primary gap, not iOS features
-3. **Update todo status** only when you complete actual work
-4. **DO NOT assume iOS features are missing** - they're likely already implemented
+1. **Read the PRD document** (`boomerang-v5-prd.md`) to understand the full product vision
+2. **Read the Current State section below** to understand we have a complete iOS app
+3. **Focus on backend development** - that's the primary gap, not iOS features
+4. **Update todo status** only when you complete actual work
+5. **DO NOT assume iOS features are missing** - they're likely already implemented
 
 **Key Insight: We're in "Production iOS App Needs Backend" phase, not early development.**
+
+## 🎯 **What Boomerang Actually Does** (For New Developers)
+
+**Boomerang is a voice-first iOS app for small service businesses** that transforms voice notes into automated business tasks:
+
+### **Core User Journey**:
+```
+Throughout Day: "Remind me to call John" → AI processes → Creates task
+Evening: User reviews tasks → Swipes to approve → App executes automatically
+Next Morning: See results → "SMS sent to John about project update"
+```
+
+### **Key Business Value**:
+- **Input**: Stream-of-consciousness voice notes during work
+- **Process**: AI converts to structured business actions using context
+- **Output**: Automated follow-ups, reminders, SMS, emails, calls
+- **Result**: Business growth through consistent communication
+
+### **NOT a simple voice memo app** - it's an AI-powered business automation system that happens to use voice as the input method.
 
 ## 🚀 Quick Start for New Developers
 
 **If you're new to this project:**
 
-1. **Open `HeyBoomerangIOS.xcodeproj` in Xcode** - the iOS app is complete and ready
-2. **Build and run** - everything works with mock data and real voice capture
-3. **The iOS app is production-ready** - 39+ Swift files, sophisticated architecture
-4. **Focus on backend development** - that's what's missing, not iOS features
-5. **Don't rebuild iOS features** - they're already implemented and polished
+1. **Read [boomerang-v5-prd.md](./boomerang-v5-prd.md)** - Essential for understanding the product
+2. **Open `HeyBoomerangIOS.xcodeproj` in Xcode** - the iOS app is complete and ready
+3. **Build and run** - everything works with mock data and real voice capture
+4. **The iOS app is production-ready** - 39+ Swift files, sophisticated architecture
+5. **Focus on backend development** - that's what's missing, not iOS features
+6. **Don't rebuild iOS features** - they're already implemented and polished
 
 **Common misconception**: "We need to build basic iOS features"
 **Reality**: "We have a sophisticated iOS app that needs a backend to connect to"
@@ -37,6 +64,66 @@ Boomerang is a voice-first iOS app for small service businesses. Users capture v
 - Supabase (PostgreSQL) for data storage and authentication
 - OpenAI integration for AI task generation with user context
 - Twilio (SMS) and SendGrid (email) for message delivery
+
+## 🔧 **CRITICAL: AI Function Calling Architecture** (Implementation Details)
+
+**🚨 IMPORTANT: Boomerang uses OpenAI Function Calling, NOT simple text generation**
+
+### **How Voice-to-Task Processing Actually Works**:
+
+```
+Voice: "Remind me to call John about his project"
+↓
+iOS Speech Recognition: Converts to text
+↓
+Backend /api/capture: Sends to OpenAI with 6 specialized functions
+↓
+OpenAI: Calls create_reminder() function with structured parameters
+↓
+Database: Creates task with task_type='reminder', timing='tomorrow'
+↓
+iOS Tasks Tab: User sees "Call John about his project" for evening review
+↓
+User Approves: Task executes automatically (call reminder set)
+```
+
+### **6 Specialized OpenAI Functions** (All Generate Tasks for Review):
+
+1. **`create_contact`** - "Create a contact for Mike Smith"
+   - Creates `task_type='create_contact'` for user review
+   - When approved: Actually creates contact in database
+
+2. **`send_sms`** - "Text John about his appointment"
+   - Creates `task_type='send_sms'` for user review
+   - When approved: Sends SMS via Twilio
+
+3. **`send_email`** - "Email Mary about project update"
+   - Creates `task_type='send_email'` for user review
+   - When approved: Sends email via SendGrid
+
+4. **`create_reminder`** - "Remind me to order drywall"
+   - Creates `task_type='reminder'` for user review
+   - When approved: Sets internal reminder/notification
+
+5. **`make_phone_call`** - "Call Sarah about pricing"
+   - Creates `task_type='make_phone_call'` for user review
+   - When approved: Triggers external calling app
+
+6. **`create_note`** - "Note that we need more supplies"
+   - Creates `task_type='create_note'` for user review
+   - When approved: Saves business note for future reference
+
+### **Key Architectural Principles**:
+
+- **All tasks go to review queue first** - Nothing executes immediately
+- **Evening review workflow** - User approves/skips tasks before execution
+- **Context learning** - AI gets smarter based on user approval patterns
+- **Multi-tenancy** - Each user's AI context is completely isolated
+- **Safety first** - User always has final control over all actions
+
+### **NOT Simple Text Generation**:
+❌ "Generate a task list from this voice note"
+✅ "Call the appropriate function to create the right business task"
 
 ## Technical Architecture
 
@@ -174,13 +261,42 @@ npm test
 - `GET /api/context/user/:userId` - Get user business context
 - `POST /api/context/learn` - Update learning from user actions
 
-## Context & Learning System
+## 🧠 **Context & Learning System** (Planned Implementation)
 
-The app maintains intelligent context for each user:
-- **Business Context**: Name, type, location, messaging style
+**The app will maintain intelligent, user-specific context that gets smarter over time:**
+
+### **Learning Sources**:
+- **Business Context**: Name, type, location, messaging style from user profile
 - **Message Examples**: Last 20 approved messages for style learning
-- **Contact Patterns**: Interaction history and preferences
-- **Timing Preferences**: When to send different types of messages
+- **Contact Patterns**: Interaction history and preferences per contact
+- **Timing Preferences**: When user prefers to send different types of messages
+- **Approval Patterns**: What types of tasks user approves vs skips
+
+### **How Context Gets Applied**:
+```javascript
+// Example: AI learns user's communication style
+const userContext = {
+  businessType: "hair_salon",
+  messageStyle: "friendly_professional", // Learned from approvals
+  preferredTiming: "end_of_day", // User usually approves evening sends
+  recentApprovals: ["Great haircut today! Let me know if you need a touch-up"]
+}
+
+// OpenAI uses this context to generate better tasks
+const aiPrompt = `You help ${userContext.businessType} owner.
+Style: ${userContext.messageStyle}
+Recent approved messages: ${userContext.recentApprovals.join('; ')}`
+```
+
+### **Multi-Tenancy & Privacy**:
+- **Each user's context is completely isolated** - no data sharing between accounts
+- **Context builds only from that user's actions** - approvals, skips, edits
+- **Easy export/deletion** - full user data control and GDPR compliance
+
+### **Database Tables** (To Be Created):
+- `user_context` - Business info, message style examples, learned preferences
+- `contact_insights` - Per-contact interaction patterns and success rates
+- `pattern_analytics` - Usage patterns, timing preferences, task success rates
 
 ## Core User Flow
 
@@ -253,23 +369,32 @@ The app maintains intelligent context for each user:
 ✅ Complete Supabase authentication system with email/password
 ✅ Real user data integration - no more mock data throughout the app
 
-### **❌ MISSING: BACKEND INFRASTRUCTURE (Current Priority)**
+### **🚧 BACKEND INFRASTRUCTURE (Current Development Phase)**
 
-**Backend Setup (Partially Complete):**
+**✅ COMPLETED Backend Features:**
 ✅ **B1.1** Set up Vercel project and Next.js API structure
 ✅ **B1.2** Configure Supabase database with proper schema
 ✅ **B1.3** Implement user authentication (email/password with Supabase)
 ✅ **B1.4** Create user profile API endpoints matching iOS service protocols
 ✅ **B1.5** Set up environment variables and deployment
-❌ **B1.6** Create task processing API endpoints (`/api/capture`, `/api/tasks/pending`)
-❌ **B1.7** Add contact management API endpoints
+✅ **B1.6** Create task processing API endpoints (`/api/capture`, `/api/tasks/pending`)
+✅ **B2.1** Integrate OpenAI API with **6 specialized functions** for task generation
 
-**AI Integration:**
-❌ **B2.1** Integrate OpenAI API for task generation from transcriptions
-❌ **B2.2** Implement user context system for personalized messages
-❌ **B2.3** Add contact matching and learning algorithms
-❌ **B2.4** Create message generation with business context
-❌ **B2.5** Build learning system to improve suggestions
+**🎯 MAJOR ARCHITECTURE BREAKTHROUGH (August 2025):**
+✅ **Implemented OpenAI Function Calling** with 6 specialized business functions:
+- `create_contact` - Contact management
+- `send_sms` - SMS communication tasks  
+- `send_email` - Email communication tasks
+- `create_reminder` - Personal reminders/todos
+- `make_phone_call` - Phone call tasks
+- `create_note` - Business note creation
+
+**❌ REMAINING Backend Tasks:**
+❌ **B1.7** Update database schema to support new task types (create_contact, send_sms, etc.)
+❌ **B2.2** Implement user context learning system for personalized AI
+❌ **B2.3** Add contact disambiguation logic for task execution
+❌ **B2.4** Build context builder service for user-specific AI responses
+❌ **B2.5** Create learning pipeline that improves AI from user approvals
 
 **Message Delivery:**
 ❌ **B3.1** Integrate Twilio for SMS delivery
@@ -285,15 +410,22 @@ The app maintains intelligent context for each user:
 ❌ **B4.4** Performance optimization and caching
 ❌ **B4.5** Security audit and deployment preparation
 
-### **🎯 IMMEDIATE PRIORITIES**
+### **🎯 IMMEDIATE PRIORITIES** (Next Development Steps)
 
-**Authentication ✅ COMPLETE. Focus on core backend features:**
+**✅ MAJOR BREAKTHROUGH COMPLETE**: OpenAI Function Calling Architecture Implemented
 
-1. **Create task processing endpoints** (`/api/capture`, `/api/tasks/pending`) - most critical
-2. **Implement OpenAI integration** for voice-to-task generation  
-3. **Add contact management APIs** for task disambiguation
-4. **Implement Twilio/SendGrid** for message delivery
-5. **Add delivery tracking** and webhook handling
+**📋 CURRENT TESTING PHASE:**
+1. **Test simple reminder tasks first** - "Remind me to order drywall" 
+2. **Update database schema** - Add new task_type values to support all 6 functions
+3. **Test each function type individually** - Verify all 6 OpenAI functions work correctly
+4. **Implement context learning system** - Make AI smarter over time
+
+**🚧 NEXT DEVELOPMENT PRIORITIES:**
+1. **Database Schema Update** - Support create_contact, send_sms, send_email, make_phone_call, create_note
+2. **Context Learning System** - User-specific AI that gets smarter from approvals  
+3. **Contact Disambiguation** - Resolve "John" to specific contact for SMS/email tasks
+4. **External Integrations** - Twilio (SMS), SendGrid (email) for approved task execution
+5. **Task Execution System** - Actually perform approved tasks (create contacts, send messages)
 
 ## Recent UI Improvements (Completed)
 

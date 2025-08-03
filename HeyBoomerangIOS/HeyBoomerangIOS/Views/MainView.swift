@@ -28,7 +28,7 @@ struct VoiceCaptureView: View {
                         .font(.title2)
                         .fontWeight(.semibold)
                     
-                    Text("Hold the microphone to capture voice notes throughout your day")
+                    Text("Tap the microphone to capture voice notes throughout your day")
                         .font(.subheadline)
                         .foregroundColor(.secondary)
                         .multilineTextAlignment(.center)
@@ -63,23 +63,25 @@ struct VoiceCaptureView: View {
                                 .symbolRenderingMode(.hierarchical)
                                 .symbolEffect(.pulse, isActive: voiceService.isRecording)
                         }
-                        .scaleEffect(voiceService.isRecording ? 1.05 : (isPressed ? 0.95 : 1.0))
+                        .scaleEffect(isPressed ? 0.95 : 1.0)
                         .animation(.easeInOut(duration: 0.1), value: voiceService.isRecording)
                         .animation(.easeInOut(duration: 0.1), value: isPressed)
-                        .onLongPressGesture(minimumDuration: 0.1, maximumDistance: 50) {
-                            // Long press completed
-                            Task {
-                                await stopRecordingAndProcess()
-                            }
-                            isPressed = false
-                        } onPressingChanged: { pressing in
-                            if pressing {
-                                isPressed = true
-                                startRecording()
-                            } else if voiceService.isRecording {
+                        .onTapGesture {
+                            // Toggle recording on/off
+                            isPressed = true
+                            
+                            if voiceService.isRecording {
+                                // Stop recording
                                 Task {
                                     await stopRecordingAndProcess()
                                 }
+                            } else {
+                                // Start recording
+                                startRecording()
+                            }
+                            
+                            // Reset pressed state after animation
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
                                 isPressed = false
                             }
                         }
@@ -168,10 +170,12 @@ struct VoiceCaptureView: View {
         switch result {
         case .success(let response):
             print("✅ Successfully submitted capture to backend")
-            print("📝 Capture ID: \(response.captureId)")
+            print("📝 Response: \(response.message)")
             
-            if let tasks = response.suggestedTasks {
-                print("🎯 Generated \(tasks.count) suggested tasks")
+            if !response.tasksGenerated.isEmpty {
+                print("🎯 Generated \(response.tasksGenerated.count) tasks")
+            } else {
+                print("ℹ️ No actionable tasks generated from this transcription")
             }
             
         case .failure(let error):
@@ -183,9 +187,9 @@ struct VoiceCaptureView: View {
         if isProcessing {
             return "Processing..."
         } else if voiceService.isRecording {
-            return "Recording... Release to stop"
+            return "Recording... Tap to stop"
         } else {
-            return "Hold to capture"
+            return "Tap to start recording"
         }
     }
     

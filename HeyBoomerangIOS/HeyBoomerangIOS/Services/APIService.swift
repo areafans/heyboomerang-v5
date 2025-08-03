@@ -113,10 +113,14 @@ struct CaptureRequest: Codable {
 }
 
 struct CaptureResponse: Codable {
-    let captureId: UUID
-    let suggestedTasks: [AppTask]?
-    let processingStatus: String?
-    let createdAt: Date?
+    let success: Bool
+    let tasksGenerated: [AppTask]
+    let message: String
+    
+    // Computed property for backward compatibility
+    var suggestedTasks: [AppTask]? {
+        return tasksGenerated.isEmpty ? nil : tasksGenerated
+    }
 }
 
 struct TasksResponse: Codable {
