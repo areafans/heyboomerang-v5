@@ -104,52 +104,125 @@ struct AppTask: Codable, Identifiable {
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
         
-        // Convert string UUIDs to UUID objects
-        let idString = try container.decode(String.self, forKey: .id)
-        self.id = UUID(uuidString: idString) ?? UUID()
+        // Convert string UUIDs to UUID objects - be more forgiving
+        do {
+            let idString = try container.decode(String.self, forKey: .id)
+            self.id = UUID(uuidString: idString) ?? UUID()
+        } catch {
+            print("❌ Failed to decode id: \(error)")
+            self.id = UUID()
+        }
         
-        let userIdString = try container.decode(String.self, forKey: .userId)
-        self.userId = UUID(uuidString: userIdString) ?? UUID()
+        do {
+            let userIdString = try container.decode(String.self, forKey: .userId)
+            self.userId = UUID(uuidString: userIdString) ?? UUID()
+        } catch {
+            print("❌ Failed to decode userId: \(error)")
+            self.userId = UUID()
+        }
         
-        let captureIdString = try container.decode(String.self, forKey: .captureId)
-        self.captureId = UUID(uuidString: captureIdString) ?? UUID()
+        do {
+            let captureIdString = try container.decode(String.self, forKey: .captureId)
+            self.captureId = UUID(uuidString: captureIdString) ?? UUID()
+        } catch {
+            print("❌ Failed to decode captureId: \(error)")
+            self.captureId = UUID()
+        }
         
-        self.type = try container.decode(TaskType.self, forKey: .type)
-        self.status = try container.decode(TaskStatus.self, forKey: .status)
+        do {
+            self.type = try container.decode(TaskType.self, forKey: .type)
+        } catch {
+            print("❌ Failed to decode type: \(error)")
+            self.type = .reminderCall // Default fallback
+        }
+        
+        do {
+            self.status = try container.decode(TaskStatus.self, forKey: .status)
+        } catch {
+            print("❌ Failed to decode status: \(error)")
+            self.status = .pending // Default fallback
+        }
         
         // Handle optional contactId
-        if let contactIdString = try container.decodeIfPresent(String.self, forKey: .contactId) {
-            self.contactId = UUID(uuidString: contactIdString)
-        } else {
+        do {
+            if let contactIdString = try container.decodeIfPresent(String.self, forKey: .contactId) {
+                self.contactId = UUID(uuidString: contactIdString)
+            } else {
+                self.contactId = nil
+            }
+        } catch {
+            print("❌ Failed to decode contactId: \(error)")
             self.contactId = nil
         }
         
-        self.contactName = try container.decodeIfPresent(String.self, forKey: .contactName)
-        self.message = try container.decode(String.self, forKey: .message)
-        self.originalTranscription = try container.decode(String.self, forKey: .originalTranscription)
+        do {
+            self.contactName = try container.decodeIfPresent(String.self, forKey: .contactName)
+        } catch {
+            print("❌ Failed to decode contactName: \(error)")
+            self.contactName = nil
+        }
         
-        // Handle ISO8601 date strings
+        do {
+            self.message = try container.decode(String.self, forKey: .message)
+        } catch {
+            print("❌ Failed to decode message: \(error)")
+            self.message = "Unknown message"
+        }
+        
+        do {
+            self.originalTranscription = try container.decode(String.self, forKey: .originalTranscription)
+        } catch {
+            print("❌ Failed to decode originalTranscription: \(error)")
+            self.originalTranscription = ""
+        }
+        
+        // Handle ISO8601 date strings with multiple formats - be forgiving
         let dateFormatter = ISO8601DateFormatter()
-        dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let fallbackFormatter = DateFormatter()
+        fallbackFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSSSS+00:00"
+        fallbackFormatter.timeZone = TimeZone(secondsFromGMT: 0)
         
-        if let scheduledForString = try container.decodeIfPresent(String.self, forKey: .scheduledFor) {
-            self.scheduledFor = dateFormatter.date(from: scheduledForString)
-        } else {
+        do {
+            if let scheduledForString = try container.decodeIfPresent(String.self, forKey: .scheduledFor) {
+                self.scheduledFor = dateFormatter.date(from: scheduledForString) ?? 
+                                   fallbackFormatter.date(from: scheduledForString)
+            } else {
+                self.scheduledFor = nil
+            }
+        } catch {
+            print("❌ Failed to decode scheduledFor: \(error)")
             self.scheduledFor = nil
         }
         
-        let createdAtString = try container.decode(String.self, forKey: .createdAt)
-        self.createdAt = dateFormatter.date(from: createdAtString) ?? Date()
+        do {
+            let createdAtString = try container.decode(String.self, forKey: .createdAt)
+            self.createdAt = dateFormatter.date(from: createdAtString) ?? 
+                            fallbackFormatter.date(from: createdAtString) ?? 
+                            Date()
+        } catch {
+            print("❌ Failed to decode createdAt: \(error)")
+            self.createdAt = Date()
+        }
         
-        if let archivedAtString = try container.decodeIfPresent(String.self, forKey: .archivedAt) {
-            self.archivedAt = dateFormatter.date(from: archivedAtString)
-        } else {
+        do {
+            if let archivedAtString = try container.decodeIfPresent(String.self, forKey: .archivedAt) {
+                self.archivedAt = dateFormatter.date(from: archivedAtString)
+            } else {
+                self.archivedAt = nil
+            }
+        } catch {
+            print("❌ Failed to decode archivedAt: \(error)")
             self.archivedAt = nil
         }
         
-        if let dismissedAtString = try container.decodeIfPresent(String.self, forKey: .dismissedAt) {
-            self.dismissedAt = dateFormatter.date(from: dismissedAtString)
-        } else {
+        do {
+            if let dismissedAtString = try container.decodeIfPresent(String.self, forKey: .dismissedAt) {
+                self.dismissedAt = dateFormatter.date(from: dismissedAtString)
+            } else {
+                self.dismissedAt = nil
+            }
+        } catch {
+            print("❌ Failed to decode dismissedAt: \(error)")
             self.dismissedAt = nil
         }
     }
