@@ -112,22 +112,16 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             return .failure(error)
         }
         
-        // For prototype phase, use mock recording
-        if configuration.isDebugMode {
-            return await startMockRecording()
-        } else {
-            return await startRealRecording()
-        }
+        // Use real recording now that backend is ready
+        // Note: Change this back to check isDebugMode if you want mock recording in debug builds
+        return await startRealRecording()
     }
     
     func stopRecording() async -> Result<String, AppError> {
         await Logger.shared.info("Stopping voice recording", category: .voiceCapture)
         
-        if configuration.isDebugMode {
-            return await stopMockRecording()
-        } else {
-            return await stopRealRecording()
-        }
+        // Use real recording now that backend is ready
+        return await stopRealRecording()
     }
     
     // MARK: - Mock Recording (for prototype)
