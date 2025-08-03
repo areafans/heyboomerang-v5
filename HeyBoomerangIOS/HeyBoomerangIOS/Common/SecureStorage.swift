@@ -21,12 +21,10 @@ final class SecureStorage: SecureStorageProtocol {
             let data = try JSONEncoder().encode(value)
             userDefaults.set(data, forKey: key)
             
-            Task {
-                await Logger.shared.debug("Stored value for key: \(key)", category: .storage)
-            }
+            Logger.shared.debug("Stored value for key: \(key)", category: .storage)
         } catch {
             Task {
-                await Logger.shared.error("Failed to store value for key: \(key)", error: error, category: .storage)
+                Logger.shared.error("Failed to store value for key: \(key)", error: error, category: .storage)
             }
             throw AppError.storage(.saveFailed("Failed to encode value: \(error.localizedDescription)"))
         }
@@ -35,7 +33,7 @@ final class SecureStorage: SecureStorageProtocol {
     func retrieve<T: Codable>(_ type: T.Type, forKey key: String) throws -> T {
         guard let data = userDefaults.data(forKey: key) else {
             Task {
-                await Logger.shared.warning("No data found for key: \(key)", category: .storage)
+                Logger.shared.warning("No data found for key: \(key)", category: .storage)
             }
             throw AppError.storage(.keyNotFound(key))
         }
@@ -43,12 +41,12 @@ final class SecureStorage: SecureStorageProtocol {
         do {
             let value = try JSONDecoder().decode(type, from: data)
             Task {
-                await Logger.shared.debug("Retrieved value for key: \(key)", category: .storage)
+                Logger.shared.debug("Retrieved value for key: \(key)", category: .storage)
             }
             return value
         } catch {
             Task {
-                await Logger.shared.error("Failed to retrieve value for key: \(key)", error: error, category: .storage)
+                Logger.shared.error("Failed to retrieve value for key: \(key)", error: error, category: .storage)
             }
             throw AppError.storage(.loadFailed("Failed to decode value: \(error.localizedDescription)"))
         }
@@ -57,7 +55,7 @@ final class SecureStorage: SecureStorageProtocol {
     func delete(forKey key: String) throws {
         userDefaults.removeObject(forKey: key)
         Task {
-            await Logger.shared.debug("Deleted value for key: \(key)", category: .storage)
+            Logger.shared.debug("Deleted value for key: \(key)", category: .storage)
         }
     }
     
@@ -67,11 +65,11 @@ final class SecureStorage: SecureStorageProtocol {
         do {
             try keychain.store(data, forKey: key)
             Task {
-                await Logger.shared.debug("Stored sensitive data in keychain for key: \(key)", category: .security)
+                Logger.shared.debug("Stored sensitive data in keychain for key: \(key)", category: .security)
             }
         } catch {
             Task {
-                await Logger.shared.error("Failed to store in keychain for key: \(key)", error: error, category: .security)
+                Logger.shared.error("Failed to store in keychain for key: \(key)", error: error, category: .security)
             }
             throw error
         }
@@ -81,12 +79,12 @@ final class SecureStorage: SecureStorageProtocol {
         do {
             let data = try keychain.retrieve(forKey: key)
             Task {
-                await Logger.shared.debug("Retrieved sensitive data from keychain for key: \(key)", category: .security)
+                Logger.shared.debug("Retrieved sensitive data from keychain for key: \(key)", category: .security)
             }
             return data
         } catch {
             Task {
-                await Logger.shared.error("Failed to retrieve from keychain for key: \(key)", error: error, category: .security)
+                Logger.shared.error("Failed to retrieve from keychain for key: \(key)", error: error, category: .security)
             }
             throw error
         }
@@ -96,11 +94,11 @@ final class SecureStorage: SecureStorageProtocol {
         do {
             try keychain.delete(forKey: key)
             Task {
-                await Logger.shared.debug("Deleted sensitive data from keychain for key: \(key)", category: .security)
+                Logger.shared.debug("Deleted sensitive data from keychain for key: \(key)", category: .security)
             }
         } catch {
             Task {
-                await Logger.shared.error("Failed to delete from keychain for key: \(key)", error: error, category: .security)
+                Logger.shared.error("Failed to delete from keychain for key: \(key)", error: error, category: .security)
             }
             throw error
         }

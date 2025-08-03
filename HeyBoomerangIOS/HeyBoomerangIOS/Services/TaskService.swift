@@ -30,7 +30,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
     // MARK: - Public Interface
     
     func loadPendingTasks() async -> Result<[AppTask], AppError> {
-        await Logger.shared.info("Loading pending tasks", category: .api)
+        Logger.shared.info("Loading pending tasks", category: .api)
         
         await MainActor.run {
             isLoading = true
@@ -54,7 +54,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
             // Cache tasks for offline access
             await cacheTasks(activeTasks)
             
-            await Logger.shared.info("Loaded \(activeTasks.count) pending tasks", category: .api)
+            Logger.shared.info("Loaded \(activeTasks.count) pending tasks", category: .api)
             return .success(activeTasks)
             
         case .failure(let error):
@@ -62,11 +62,11 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
                 lastError = error
             }
             
-            await Logger.shared.error("Failed to load pending tasks", error: error, category: .api)
+            Logger.shared.error("Failed to load pending tasks", error: error, category: .api)
             
             // Try to return cached tasks as fallback
             if let cachedTasks = await loadCachedTasks() {
-                await Logger.shared.info("Returning \(cachedTasks.count) cached tasks as fallback", category: .api)
+                Logger.shared.info("Returning \(cachedTasks.count) cached tasks as fallback", category: .api)
                 return .success(cachedTasks)
             }
             
@@ -75,7 +75,7 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
     }
     
     func approveTask(_ task: AppTask) async -> Result<Void, AppError> {
-        await Logger.shared.info("Approving task: \(task.id)", category: .api)
+        Logger.shared.info("Approving task: \(task.id)", category: .api)
         
         let result = await apiService.updateTask(
             id: task.id,
@@ -87,20 +87,20 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
         switch result {
         case .success:
             await removeTaskFromPending(task.id)
-            await Logger.shared.info("Successfully approved task: \(task.id)", category: .api)
+            Logger.shared.info("Successfully approved task: \(task.id)", category: .api)
             return .success(())
             
         case .failure(let error):
             await MainActor.run {
                 lastError = error
             }
-            await Logger.shared.error("Failed to approve task: \(task.id)", error: error, category: .api)
+            Logger.shared.error("Failed to approve task: \(task.id)", error: error, category: .api)
             return .failure(error)
         }
     }
     
     func skipTask(_ task: AppTask) async -> Result<Void, AppError> {
-        await Logger.shared.info("Skipping task: \(task.id)", category: .api)
+        Logger.shared.info("Skipping task: \(task.id)", category: .api)
         
         let result = await apiService.updateTask(
             id: task.id,
@@ -112,20 +112,20 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
         switch result {
         case .success:
             await removeTaskFromPending(task.id)
-            await Logger.shared.info("Successfully skipped task: \(task.id)", category: .api)
+            Logger.shared.info("Successfully skipped task: \(task.id)", category: .api)
             return .success(())
             
         case .failure(let error):
             await MainActor.run {
                 lastError = error
             }
-            await Logger.shared.error("Failed to skip task: \(task.id)", error: error, category: .api)
+            Logger.shared.error("Failed to skip task: \(task.id)", error: error, category: .api)
             return .failure(error)
         }
     }
     
     func updateTaskStatus(_ taskId: UUID, status: AppTask.TaskStatus) async -> Result<Void, AppError> {
-        await Logger.shared.info("Updating task \(taskId) status to: \(status)", category: .api)
+        Logger.shared.info("Updating task \(taskId) status to: \(status)", category: .api)
         
         let result = await apiService.updateTask(id: taskId, status: status, contactId: nil, scheduledFor: nil)
         
@@ -158,9 +158,9 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
     private func cacheTasks(_ tasks: [AppTask]) async {
         do {
             try storage.store(tasks, forKey: StorageKey.cachedTasks)
-            await Logger.shared.debug("Cached \(tasks.count) tasks", category: .storage)
+            Logger.shared.debug("Cached \(tasks.count) tasks", category: .storage)
         } catch {
-            await Logger.shared.error("Failed to cache tasks", error: error, category: .storage)
+            Logger.shared.error("Failed to cache tasks", error: error, category: .storage)
         }
     }
     
@@ -171,10 +171,10 @@ final class TaskService: TaskServiceProtocol, ObservableObject {
             await MainActor.run {
                 pendingTasks = cachedTasks
             }
-            await Logger.shared.debug("Loaded \(cachedTasks.count) cached tasks", category: .storage)
+            Logger.shared.debug("Loaded \(cachedTasks.count) cached tasks", category: .storage)
             return cachedTasks
         } catch {
-            await Logger.shared.debug("No cached tasks found", category: .storage)
+            Logger.shared.debug("No cached tasks found", category: .storage)
             return nil
         }
     }

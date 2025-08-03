@@ -26,10 +26,10 @@ final class APIService: APIServiceProtocol, ObservableObject {
     func submitCapture(transcription: String, duration: TimeInterval) async -> Result<CaptureResponse, AppError> {
         print("🌐 API: Submitting capture to backend...")
         print("🔑 API: Auth token available: \(authService.accessToken != nil)")
-        await Logger.shared.info("Submitting capture with transcription length: \(transcription.count)", category: .api)
+        Logger.shared.info("Submitting capture with transcription length: \(transcription.count)", category: .api)
         
         guard let url = URL.apiURL(path: "capture", configuration: configuration) else {
-            await Logger.shared.error("Failed to create capture URL", category: .api)
+            Logger.shared.error("Failed to create capture URL", category: .api)
             return .failure(.network(.invalidURL("capture endpoint")))
         }
         
@@ -47,7 +47,7 @@ final class APIService: APIServiceProtocol, ObservableObject {
                 .logError(message: "Failed to submit capture", category: .api)
             
         } catch {
-            await Logger.shared.error("Failed to encode capture request", error: error, category: .api)
+            Logger.shared.error("Failed to encode capture request", error: error, category: .api)
             return .failure(.api(.decodingFailed("Failed to encode request: \(error.localizedDescription)")))
         }
     }
@@ -58,10 +58,10 @@ final class APIService: APIServiceProtocol, ObservableObject {
         print("🌐 API: Fetching tasks from backend...")
         print("🔑 API: Auth token available: \(authService.accessToken != nil)")
         print("🎯 API: Backend URL: \(configuration.apiBaseURL)")
-        await Logger.shared.info("Fetching pending tasks", category: .api)
+        Logger.shared.info("Fetching pending tasks", category: .api)
         
         guard let url = URL.apiURL(path: "tasks/pending", configuration: configuration) else {
-            await Logger.shared.error("Failed to create tasks URL", category: .api)
+            Logger.shared.error("Failed to create tasks URL", category: .api)
             return .failure(.network(.invalidURL("tasks/pending endpoint")))
         }
         
@@ -72,10 +72,10 @@ final class APIService: APIServiceProtocol, ObservableObject {
     }
     
     func updateTask(id: UUID, status: AppTask.TaskStatus, contactId: UUID?, scheduledFor: Date?) async -> Result<Void, AppError> {
-        await Logger.shared.info("Updating task \(id) to status: \(status)", category: .api)
+        Logger.shared.info("Updating task \(id) to status: \(status)", category: .api)
         
         guard let url = URL.apiURL(path: "tasks/\(id)", configuration: configuration) else {
-            await Logger.shared.error("Failed to create task update URL for task: \(id)", category: .api)
+            Logger.shared.error("Failed to create task update URL for task: \(id)", category: .api)
             return .failure(.network(.invalidURL("tasks/\(id) endpoint")))
         }
         
@@ -93,7 +93,7 @@ final class APIService: APIServiceProtocol, ObservableObject {
                 .logError(message: "Failed to update task \(id)", category: .api)
             
         } catch {
-            await Logger.shared.error("Failed to encode task update request", error: error, category: .api)
+            Logger.shared.error("Failed to encode task update request", error: error, category: .api)
             return .failure(.api(.decodingFailed("Failed to encode request: \(error.localizedDescription)")))
         }
     }

@@ -84,7 +84,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     // MARK: - Permission Requesting (for onboarding)
     
     func requestPermissions() async -> Result<Bool, AppError> {
-        await Logger.shared.info("Requesting microphone and speech recognition permissions", category: .voiceCapture)
+        Logger.shared.info("Requesting microphone and speech recognition permissions", category: .voiceCapture)
         
         // Request microphone permission
         let microphoneResult = await requestMicrophonePermission()
@@ -98,7 +98,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     }
     
     func startRecording() async -> Result<Void, AppError> {
-        await Logger.shared.info("Starting voice recording", category: .voiceCapture)
+        Logger.shared.info("Starting voice recording", category: .voiceCapture)
         
         // Clear previous state
         currentError = nil
@@ -118,7 +118,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     }
     
     func stopRecording() async -> Result<String, AppError> {
-        await Logger.shared.info("Stopping voice recording", category: .voiceCapture)
+        Logger.shared.info("Stopping voice recording", category: .voiceCapture)
         
         // Use real recording now that backend is ready
         return await stopRealRecording()
@@ -139,7 +139,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             }
         }
         
-        await Logger.shared.debug("Started mock recording for \(recordingTime) seconds", category: .voiceCapture)
+        Logger.shared.debug("Started mock recording for \(recordingTime) seconds", category: .voiceCapture)
         return .success(())
     }
     
@@ -162,7 +162,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             transcription = mockTranscription
         }
         
-        await Logger.shared.debug("Mock transcription generated: \(mockTranscription)", category: .voiceCapture)
+        Logger.shared.debug("Mock transcription generated: \(mockTranscription)", category: .voiceCapture)
         return .success(mockTranscription)
     }
     
@@ -173,7 +173,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         cleanup()
         
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
-            await Logger.shared.error("Speech recognizer not available", category: .voiceCapture)
+            Logger.shared.error("Speech recognizer not available", category: .voiceCapture)
             let error = AppError.voiceCapture(.unavailable)
             currentError = error
             return .failure(error)
@@ -182,16 +182,16 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         // Check authorization status
         let speechStatus = SFSpeechRecognizer.authorizationStatus()
         guard speechStatus == .authorized else {
-            await Logger.shared.error("Speech recognition not authorized: \(speechStatus)", category: .voiceCapture)
+            Logger.shared.error("Speech recognition not authorized: \(speechStatus)", category: .voiceCapture)
             let error = AppError.voiceCapture(.permissionDenied)
             currentError = error
             return .failure(error)
         }
         
         do {
-            await Logger.shared.info("Setting up audio session and engine", category: .voiceCapture)
+            Logger.shared.info("Setting up audio session and engine", category: .voiceCapture)
             try await setupAudioSession()
-            try setupAudioEngine()
+            try await setupAudioEngine()
             
             await MainActor.run {
                 isRecording = true
@@ -205,11 +205,11 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                 }
             }
             
-            await Logger.shared.info("Recording started successfully", category: .voiceCapture)
+            Logger.shared.info("Recording started successfully", category: .voiceCapture)
             return .success(())
             
         } catch {
-            await Logger.shared.error("Failed to start recording", error: error, category: .voiceCapture)
+            Logger.shared.error("Failed to start recording", error: error, category: .voiceCapture)
             let appError = AppError.voiceCapture(.recordingFailed(error.localizedDescription))
             currentError = appError
             return .failure(appError)
@@ -228,15 +228,13 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         audioEngine?.stop()
         recognitionRequest?.endAudio()
         
-        await Logger.shared.debug("Stopping recording, current transcription: '\(transcription)'", category: .voiceCapture)
+        Logger.shared.debug("Stopping recording, current transcription: '\(transcription)'", category: .voiceCapture)
         
         // Wait for final transcription result with longer timeout
         return await withCheckedContinuation { continuation in
             // If we already have a transcription result, return it immediately
             if !transcription.isEmpty {
-                Task {
-                    await Logger.shared.info("Returning existing transcription: '\(self.transcription)'", category: .voiceCapture)
-                }
+                Logger.shared.info("Returning existing transcription: '\(self.transcription)'", category: .voiceCapture)
                 continuation.resume(returning: .success(transcription))
                 return
             }
@@ -244,14 +242,10 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             // Otherwise wait longer for the final result (speech recognition can be slow)
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 if !self.transcription.isEmpty {
-                    Task {
-                        await Logger.shared.info("Final transcription after wait: '\(self.transcription)'", category: .voiceCapture)
-                    }
+                    Logger.shared.info("Final transcription after wait: '\(self.transcription)'", category: .voiceCapture)
                     continuation.resume(returning: .success(self.transcription))
                 } else {
-                    Task {
-                        await Logger.shared.warning("No transcription available after timeout", category: .voiceCapture)
-                    }
+                    Logger.shared.warning("No transcription available after timeout", category: .voiceCapture)
                     let error = AppError.voiceCapture(.transcriptionFailed)
                     self.currentError = error
                     continuation.resume(returning: .failure(error))
@@ -274,15 +268,15 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
         
-        // Request permission if not already granted
+        // Request permission if not already granted (iOS 17.0+)
         let _ = await withCheckedContinuation { continuation in
-            audioSession.requestRecordPermission { granted in
+            AVAudioApplication.requestRecordPermissionWithCompletionHandler { granted in
                 continuation.resume(returning: granted)
             }
         }
     }
     
-    private func setupAudioEngine() throws {
+    private func setupAudioEngine() async throws {
         audioEngine = AVAudioEngine()
         
         guard let audioEngine = audioEngine else {
@@ -293,7 +287,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         
         // Log audio format for debugging
-        await Logger.shared.debug("Audio format - Sample Rate: \(recordingFormat.sampleRate), Channels: \(recordingFormat.channelCount)", category: .voiceCapture)
+        Logger.shared.debug("Audio format - Sample Rate: \(recordingFormat.sampleRate), Channels: \(recordingFormat.channelCount)", category: .voiceCapture)
         
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         recognitionRequest?.shouldReportPartialResults = true
@@ -316,25 +310,18 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 
-                var shouldLog = false
-                
                 if let result = result {
                     self.transcription = result.bestTranscription.formattedString
                     
                     if result.isFinal {
-                        shouldLog = true
-                        Task {
-                            await Logger.shared.info("Final transcription: \(self.transcription)", category: .voiceCapture)
-                        }
+                        Logger.shared.info("Final transcription: \(self.transcription)", category: .voiceCapture)
                     }
                 }
                 
                 if let error = error {
                     // Only log if it's not a "No speech detected" timeout (which is normal)
                     if !error.localizedDescription.contains("No speech detected") {
-                        Task {
-                            await Logger.shared.error("Speech recognition error", error: error, category: .voiceCapture)
-                        }
+                        Logger.shared.error("Speech recognition error", error: error, category: .voiceCapture)
                     }
                     
                     // Only set error if transcription is empty (no partial results)
@@ -364,9 +351,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                 
                 // Only log if there's significant audio activity
                 if average > 0.01 {
-                    Task {
-                        await Logger.shared.debug("Audio detected - Average amplitude: \(average)", category: .voiceCapture)
-                    }
+                    Logger.shared.debug("Audio detected - Average amplitude: \(average)", category: .voiceCapture)
                 }
             }
         }
@@ -379,21 +364,12 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     
     func requestMicrophonePermission() async -> Result<Bool, AppError> {
         return await withCheckedContinuation { continuation in
-            if #available(iOS 17.0, *) {
-                AVAudioApplication.requestRecordPermission { granted in
-                    if granted {
-                        continuation.resume(returning: .success(true))
-                    } else {
-                        continuation.resume(returning: .failure(.voiceCapture(.permissionDenied)))
-                    }
-                }
-            } else {
-                AVAudioSession.sharedInstance().requestRecordPermission { granted in
-                    if granted {
-                        continuation.resume(returning: .success(true))
-                    } else {
-                        continuation.resume(returning: .failure(.voiceCapture(.permissionDenied)))
-                    }
+            // Since we're iOS 17.0+, use the new AVAudioApplication API
+            AVAudioApplication.requestRecordPermissionWithCompletionHandler { granted in
+                if granted {
+                    continuation.resume(returning: .success(true))
+                } else {
+                    continuation.resume(returning: .failure(.voiceCapture(.permissionDenied)))
                 }
             }
         }
@@ -439,9 +415,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         } catch {
-            Task {
-                await Logger.shared.warning("Failed to deactivate audio session: \(error)", category: .voiceCapture)
-            }
+            Logger.shared.warning("Failed to deactivate audio session: \(error)", category: .voiceCapture)
         }
     }
 }
@@ -452,7 +426,7 @@ extension VoiceCaptureService: SFSpeechRecognizerDelegate {
     func speechRecognizer(_ speechRecognizer: SFSpeechRecognizer, availabilityDidChange available: Bool) {
         Task { @MainActor in
             if !available {
-                await Logger.shared.warning("Speech recognizer became unavailable", category: .voiceCapture)
+                Logger.shared.warning("Speech recognizer became unavailable", category: .voiceCapture)
                 self.currentError = AppError.voiceCapture(.unavailable)
             }
         }

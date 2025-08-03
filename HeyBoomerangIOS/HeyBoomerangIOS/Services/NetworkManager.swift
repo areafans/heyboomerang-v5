@@ -52,56 +52,56 @@ final class NetworkManager: NetworkManagerProtocol, ObservableObject {
     func performRequest<T: Codable>(_ request: URLRequest, responseType: T.Type) async -> Result<T, AppError> {
         // Pre-flight checks
         guard isConnected else {
-            await Logger.shared.error("Network request failed - no connection", category: .network)
+            Logger.shared.error("Network request failed - no connection", category: .network)
             return .failure(.network(.noConnection))
         }
         
         // Validate URL
         guard let url = request.url else {
-            await Logger.shared.error("Invalid URL in request", category: .network)
+            Logger.shared.error("Invalid URL in request", category: .network)
             return .failure(.network(.invalidURL("URL is nil")))
         }
         
-        await Logger.shared.debug("Starting request to: \(url.absoluteString)", category: .network)
+        Logger.shared.debug("Starting request to: \(url.absoluteString)", category: .network)
         
         do {
             let (data, response) = try await session.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                await Logger.shared.error("Invalid response type", category: .network)
+                Logger.shared.error("Invalid response type", category: .network)
                 return .failure(.api(.invalidResponse))
             }
             
-            await Logger.shared.debug("Received response: \(httpResponse.statusCode) from \(url.absoluteString)", category: .network)
+            Logger.shared.debug("Received response: \(httpResponse.statusCode) from \(url.absoluteString)", category: .network)
             
             // Handle HTTP status codes
             switch httpResponse.statusCode {
             case 200...299:
                 return await decodeResponse(data: data, responseType: responseType)
             case 401:
-                await Logger.shared.warning("Unauthorized request", category: .network)
+                Logger.shared.warning("Unauthorized request", category: .network)
                 return .failure(.api(.unauthorized))
             case 403:
-                await Logger.shared.warning("Forbidden request", category: .network)
+                Logger.shared.warning("Forbidden request", category: .network)
                 return .failure(.api(.forbidden))
             case 404:
-                await Logger.shared.warning("Resource not found", category: .network)
+                Logger.shared.warning("Resource not found", category: .network)
                 return .failure(.api(.notFound))
             case 429:
-                await Logger.shared.warning("Rate limited", category: .network)
+                Logger.shared.warning("Rate limited", category: .network)
                 return .failure(.network(.rateLimited))
             case 500...599:
-                await Logger.shared.error("Server error: \(httpResponse.statusCode)", category: .network)
+                Logger.shared.error("Server error: \(httpResponse.statusCode)", category: .network)
                 return .failure(.network(.serverError(httpResponse.statusCode)))
             default:
-                await Logger.shared.error("Unexpected status code: \(httpResponse.statusCode)", category: .network)
+                Logger.shared.error("Unexpected status code: \(httpResponse.statusCode)", category: .network)
                 return .failure(.network(.serverError(httpResponse.statusCode)))
             }
             
         } catch let error as URLError {
             return await handleURLError(error)
         } catch {
-            await Logger.shared.error("Unexpected network error", error: error, category: .network)
+            Logger.shared.error("Unexpected network error", error: error, category: .network)
             return .failure(.unknown(error.localizedDescription))
         }
     }
@@ -125,16 +125,16 @@ final class NetworkManager: NetworkManagerProtocol, ObservableObject {
             decoder.keyDecodingStrategy = .convertFromSnakeCase
             
             let decodedResponse = try decoder.decode(responseType, from: data)
-            await Logger.shared.debug("Successfully decoded response", category: .network)
+            Logger.shared.debug("Successfully decoded response", category: .network)
             return .success(decodedResponse)
             
         } catch {
-            await Logger.shared.error("Failed to decode response", error: error, category: .network)
+            Logger.shared.error("Failed to decode response", error: error, category: .network)
             
             // Log response data for debugging in development
             if configuration.isDebugMode {
                 let responseString = String(data: data, encoding: .utf8) ?? "Unable to decode data as string"
-                await Logger.shared.debug("Response data: \(responseString)", category: .network)
+                Logger.shared.debug("Response data: \(responseString)", category: .network)
             }
             
             return .failure(.api(.decodingFailed(error.localizedDescription)))
@@ -142,7 +142,7 @@ final class NetworkManager: NetworkManagerProtocol, ObservableObject {
     }
     
     private func handleURLError<T>(_ error: URLError) async -> Result<T, AppError> {
-        await Logger.shared.error("URLError occurred", error: error, category: .network)
+        Logger.shared.error("URLError occurred", error: error, category: .network)
         
         switch error.code {
         case .notConnectedToInternet, .networkConnectionLost, .dataNotAllowed:
@@ -164,7 +164,7 @@ final class NetworkManager: NetworkManagerProtocol, ObservableObject {
                 self?.isConnected = path.status == .satisfied
                 self?.connectionType = path.availableInterfaces.first?.type
                 
-                await Logger.shared.info("Network status changed - Connected: \(path.status == .satisfied)", category: .network)
+                Logger.shared.info("Network status changed - Connected: \(path.status == .satisfied)", category: .network)
             }
         }
         

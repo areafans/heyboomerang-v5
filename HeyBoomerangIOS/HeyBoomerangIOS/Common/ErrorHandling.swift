@@ -343,21 +343,21 @@ actor Logger {
     
     private init() {}
     
-    func debug(_ message: String, category: LogCategory = .general) {
+    nonisolated func debug(_ message: String, category: LogCategory = .general) {
         #if DEBUG
         logger.debug("[\(category.rawValue)] \(message)")
         #endif
     }
     
-    func info(_ message: String, category: LogCategory = .general) {
+    nonisolated func info(_ message: String, category: LogCategory = .general) {
         logger.info("[\(category.rawValue)] \(message)")
     }
     
-    func warning(_ message: String, category: LogCategory = .general) {
+    nonisolated func warning(_ message: String, category: LogCategory = .general) {
         logger.warning("[\(category.rawValue)] \(message)")
     }
     
-    func error(_ message: String, error: Error? = nil, category: LogCategory = .general) {
+    nonisolated func error(_ message: String, error: Error? = nil, category: LogCategory = .general) {
         if let error = error {
             logger.error("[\(category.rawValue)] \(message): \(error.localizedDescription)")
         } else {
@@ -365,7 +365,7 @@ actor Logger {
         }
     }
     
-    func fault(_ message: String, error: Error? = nil, category: LogCategory = .general) {
+    nonisolated func fault(_ message: String, error: Error? = nil, category: LogCategory = .general) {
         if let error = error {
             logger.fault("[\(category.rawValue)] \(message): \(error.localizedDescription)")
         } else {
@@ -391,7 +391,7 @@ extension Result {
     func logError(message: String, category: LogCategory = .general) -> Result<Success, Failure> {
         if case .failure(let error) = self {
             Task {
-                await Logger.shared.error(message, error: error, category: category)
+                Logger.shared.error(message, error: error, category: category)
             }
         }
         return self

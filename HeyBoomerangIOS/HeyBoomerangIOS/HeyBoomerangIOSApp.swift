@@ -32,7 +32,7 @@ struct HeyBoomerangIOSApp: App {
     // MARK: - App Initialization
     
     private func initializeApp() async {
-        await Logger.shared.info("HeyBoomerang iOS app starting up", category: .general)
+        Logger.shared.info("HeyBoomerang iOS app starting up", category: .general)
         
         // Perform any startup tasks
         await setupAppearance()
@@ -40,7 +40,7 @@ struct HeyBoomerangIOSApp: App {
     }
     
     private func setupAppearance() async {
-        await Logger.shared.debug("Setting up app appearance", category: .ui)
+        Logger.shared.debug("Setting up app appearance", category: .ui)
         
         // Configure global UI appearance
         await MainActor.run {
@@ -65,7 +65,7 @@ struct HeyBoomerangIOSApp: App {
     }
     
     private func performStartupChecks() async {
-        await Logger.shared.debug("Performing startup checks", category: .general)
+        Logger.shared.debug("Performing startup checks", category: .general)
         
         // Check for critical permissions
         let voiceService = dependencyContainer.voiceCaptureService
@@ -73,15 +73,15 @@ struct HeyBoomerangIOSApp: App {
         
         switch permissionResult {
         case .success(let granted):
-            await Logger.shared.info("Voice permissions granted: \(granted)", category: .general)
+            Logger.shared.info("Voice permissions granted: \(granted)", category: .general)
         case .failure(let error):
-            await Logger.shared.warning("Voice permissions not granted: \(error.localizedDescription)", category: .general)
+            Logger.shared.warning("Voice permissions not granted: \(error.localizedDescription)", category: .general)
         }
         
         // Log app version and build info
         if let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String,
            let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String {
-            await Logger.shared.info("App version: \(version) (\(build))", category: .general)
+            Logger.shared.info("App version: \(version) (\(build))", category: .general)
         }
     }
 }

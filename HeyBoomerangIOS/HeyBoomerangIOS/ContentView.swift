@@ -39,7 +39,7 @@ struct ContentView: View {
     // MARK: - Private Methods
     
     private func initializeAppState() async {
-        await Logger.shared.info("Initializing app state", category: .ui)
+        Logger.shared.info("Initializing app state", category: .ui)
         
         // Get current user and determine onboarding state
         let userResult = await userService.getCurrentUser()
@@ -53,10 +53,10 @@ struct ContentView: View {
                 isInitialized = true
             }
             
-            await Logger.shared.info("App state initialized - Show onboarding: \(showOnboarding)", category: .ui)
+            Logger.shared.info("App state initialized - Show onboarding: \(showOnboarding)", category: .ui)
             
         case .failure(let error):
-            await Logger.shared.error("Failed to initialize app state", error: error, category: .ui)
+            Logger.shared.error("Failed to initialize app state", error: error, category: .ui)
             
             // Default to showing onboarding on error
             await MainActor.run {

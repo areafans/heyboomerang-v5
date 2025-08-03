@@ -82,16 +82,16 @@ final class UserService: UserServiceProtocol, ObservableObject {
     private func fetchUserProfile() async {
         guard authService.isAuthenticated else { return }
         
-        await Logger.shared.info("Fetching user profile from backend", category: .api)
+        Logger.shared.info("Fetching user profile from backend", category: .api)
         
         // Call backend API to get user profile
         guard let url = URL(string: "https://heyboomerang-v5.vercel.app/api/user/profile") else {
-            await Logger.shared.error("Invalid profile URL", category: .api)
+            Logger.shared.error("Invalid profile URL", category: .api)
             return
         }
         
         guard let accessToken = authService.accessToken else {
-            await Logger.shared.error("No access token available", category: .api)
+            Logger.shared.error("No access token available", category: .api)
             return
         }
         
@@ -131,38 +131,38 @@ final class UserService: UserServiceProtocol, ObservableObject {
                         // Cache the user
                         try? await storage.store(user, forKey: "current_user")
                         
-                        await Logger.shared.info("User profile loaded: \(user.email)", category: .api)
+                        Logger.shared.info("User profile loaded: \(user.email)", category: .api)
                     }
                 }
             }
         } catch {
-            await Logger.shared.error("Failed to fetch user profile", error: error, category: .api)
+            Logger.shared.error("Failed to fetch user profile", error: error, category: .api)
         }
     }
     
     // MARK: - Public Interface
     
     func getCurrentUser() async -> Result<User?, AppError> {
-        await Logger.shared.info("Getting current user", category: .api)
+        Logger.shared.info("Getting current user", category: .api)
         
         // First check if we have a cached user
         if let cachedUser = currentUser {
-            await Logger.shared.debug("Returning cached user: \(cachedUser.email)", category: .api)
+            Logger.shared.debug("Returning cached user: \(cachedUser.email)", category: .api)
             return .success(cachedUser)
         }
         
         // Try to load from storage
         if let storedUser = await loadCachedUser() {
-            await Logger.shared.debug("Returning stored user: \(storedUser.email)", category: .api)
+            Logger.shared.debug("Returning stored user: \(storedUser.email)", category: .api)
             return .success(storedUser)
         }
         
-        await Logger.shared.debug("No user found", category: .api)
+        Logger.shared.debug("No user found", category: .api)
         return .success(nil)
     }
     
     func updateUserProfile(_ user: User) async -> Result<User, AppError> {
-        await Logger.shared.info("Updating user profile for: \(user.email)", category: .api)
+        Logger.shared.info("Updating user profile for: \(user.email)", category: .api)
         
         await MainActor.run {
             isLoading = true
@@ -185,7 +185,7 @@ final class UserService: UserServiceProtocol, ObservableObject {
                 isLoading = false
             }
             
-            await Logger.shared.info("Successfully updated user profile", category: .api)
+            Logger.shared.info("Successfully updated user profile", category: .api)
             return .success(user)
             
         } catch {
@@ -194,13 +194,13 @@ final class UserService: UserServiceProtocol, ObservableObject {
                 lastError = AppError.storage(.saveFailed(error.localizedDescription))
             }
             
-            await Logger.shared.error("Failed to update user profile", error: error, category: .api)
+            Logger.shared.error("Failed to update user profile", error: error, category: .api)
             return .failure(AppError.storage(.saveFailed(error.localizedDescription)))
         }
     }
     
     func signOut() async -> Result<Void, AppError> {
-        await Logger.shared.info("Signing out user", category: .api)
+        Logger.shared.info("Signing out user", category: .api)
         
         do {
             // Clear stored user data
@@ -216,11 +216,11 @@ final class UserService: UserServiceProtocol, ObservableObject {
                 lastError = nil
             }
             
-            await Logger.shared.info("Successfully signed out", category: .api)
+            Logger.shared.info("Successfully signed out", category: .api)
             return .success(())
             
         } catch {
-            await Logger.shared.error("Failed to sign out", error: error, category: .api)
+            Logger.shared.error("Failed to sign out", error: error, category: .api)
             return .failure(AppError.storage(.saveFailed(error.localizedDescription)))
         }
     }
@@ -234,7 +234,7 @@ final class UserService: UserServiceProtocol, ObservableObject {
         city: String?,
         state: String?
     ) async -> Result<User, AppError> {
-        await Logger.shared.info("Creating user profile for: \(email)", category: .api)
+        Logger.shared.info("Creating user profile for: \(email)", category: .api)
         
         // Input validation
         guard !email.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
@@ -266,14 +266,14 @@ final class UserService: UserServiceProtocol, ObservableObject {
     }
     
     func completeOnboarding() async -> Result<Void, AppError> {
-        await Logger.shared.info("Completing onboarding", category: .api)
+        Logger.shared.info("Completing onboarding", category: .api)
         
         do {
             try storage.store(true, forKey: StorageKey.onboardingCompleted)
-            await Logger.shared.info("Onboarding completed", category: .api)
+            Logger.shared.info("Onboarding completed", category: .api)
             return .success(())
         } catch {
-            await Logger.shared.error("Failed to complete onboarding", error: error, category: .api)
+            Logger.shared.error("Failed to complete onboarding", error: error, category: .api)
             return .failure(AppError.storage(.saveFailed(error.localizedDescription)))
         }
     }
@@ -350,10 +350,10 @@ final class UserService: UserServiceProtocol, ObservableObject {
                 currentUser = user
                 isAuthenticated = true
             }
-            await Logger.shared.debug("Loaded cached user: \(user.email)", category: .storage)
+            Logger.shared.debug("Loaded cached user: \(user.email)", category: .storage)
             return user
         } catch {
-            await Logger.shared.debug("No cached user found", category: .storage)
+            Logger.shared.debug("No cached user found", category: .storage)
             return nil
         }
     }
