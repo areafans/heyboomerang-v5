@@ -15,5 +15,9 @@
 			</array>
 		</dict>
 	</array>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Boomerang needs access to your microphone to capture voice notes throughout your workday.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Boomerang uses speech recognition to convert your voice notes into actionable tasks for your business.</string>
 </dict>
 </plist>

@@ -169,18 +169,33 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     // MARK: - Real Recording (for production)
     
     private func startRealRecording() async -> Result<Void, AppError> {
+        // Clean up any previous session
+        cleanup()
+        
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
+            await Logger.shared.error("Speech recognizer not available", category: .voiceCapture)
             let error = AppError.voiceCapture(.unavailable)
             currentError = error
             return .failure(error)
         }
         
+        // Check authorization status
+        let speechStatus = SFSpeechRecognizer.authorizationStatus()
+        guard speechStatus == .authorized else {
+            await Logger.shared.error("Speech recognition not authorized: \(speechStatus)", category: .voiceCapture)
+            let error = AppError.voiceCapture(.permissionDenied)
+            currentError = error
+            return .failure(error)
+        }
+        
         do {
+            await Logger.shared.info("Setting up audio session and engine", category: .voiceCapture)
             try await setupAudioSession()
             try setupAudioEngine()
             
             await MainActor.run {
                 isRecording = true
+                transcription = "" // Clear any previous transcription
             }
             
             // Start timeout timer
@@ -190,9 +205,11 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                 }
             }
             
+            await Logger.shared.info("Recording started successfully", category: .voiceCapture)
             return .success(())
             
         } catch {
+            await Logger.shared.error("Failed to start recording", error: error, category: .voiceCapture)
             let appError = AppError.voiceCapture(.recordingFailed(error.localizedDescription))
             currentError = appError
             return .failure(appError)
@@ -207,22 +224,34 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         recordingTimer?.invalidate()
         recordingTimer = nil
         
+        // Stop audio engine gracefully
         audioEngine?.stop()
         recognitionRequest?.endAudio()
         
-        // Wait for final transcription result
+        await Logger.shared.debug("Stopping recording, current transcription: '\(transcription)'", category: .voiceCapture)
+        
+        // Wait for final transcription result with longer timeout
         return await withCheckedContinuation { continuation in
-            // If we already have a transcription result, return it
+            // If we already have a transcription result, return it immediately
             if !transcription.isEmpty {
+                Task {
+                    await Logger.shared.info("Returning existing transcription: '\(self.transcription)'", category: .voiceCapture)
+                }
                 continuation.resume(returning: .success(transcription))
                 return
             }
             
-            // Otherwise wait a moment for the final result
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+            // Otherwise wait longer for the final result (speech recognition can be slow)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 if !self.transcription.isEmpty {
+                    Task {
+                        await Logger.shared.info("Final transcription after wait: '\(self.transcription)'", category: .voiceCapture)
+                    }
                     continuation.resume(returning: .success(self.transcription))
                 } else {
+                    Task {
+                        await Logger.shared.warning("No transcription available after timeout", category: .voiceCapture)
+                    }
                     let error = AppError.voiceCapture(.transcriptionFailed)
                     self.currentError = error
                     continuation.resume(returning: .failure(error))
@@ -240,8 +269,17 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     
     private func setupAudioSession() async throws {
         let audioSession = AVAudioSession.sharedInstance()
-        try audioSession.setCategory(.record, mode: .measurement, options: .duckOthers)
+        
+        // Use default mode for better speech recognition
+        try audioSession.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
         try audioSession.setActive(true, options: .notifyOthersOnDeactivation)
+        
+        // Request permission if not already granted
+        let _ = await withCheckedContinuation { continuation in
+            audioSession.requestRecordPermission { granted in
+                continuation.resume(returning: granted)
+            }
+        }
     }
     
     private func setupAudioEngine() throws {
@@ -254,34 +292,83 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         let inputNode = audioEngine.inputNode
         let recordingFormat = inputNode.outputFormat(forBus: 0)
         
+        // Log audio format for debugging
+        await Logger.shared.debug("Audio format - Sample Rate: \(recordingFormat.sampleRate), Channels: \(recordingFormat.channelCount)", category: .voiceCapture)
+        
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         recognitionRequest?.shouldReportPartialResults = true
+        
+        // Configure for better speech detection
+        if #available(iOS 16.0, *) {
+            recognitionRequest?.addsPunctuation = true
+        }
+        
+        // Add task hint for better recognition
+        if #available(iOS 13.0, *) {
+            recognitionRequest?.taskHint = .dictation
+        }
         
         guard let recognitionRequest = recognitionRequest else {
             throw AppError.voiceCapture(.unavailable)
         }
         
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            guard let self = self else { return }
-            
-            Task { @MainActor in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                
+                var shouldLog = false
+                
                 if let result = result {
                     self.transcription = result.bestTranscription.formattedString
                     
                     if result.isFinal {
-                        await Logger.shared.info("Final transcription: \(self.transcription)", category: .voiceCapture)
+                        shouldLog = true
+                        Task {
+                            await Logger.shared.info("Final transcription: \(self.transcription)", category: .voiceCapture)
+                        }
                     }
                 }
                 
                 if let error = error {
-                    await Logger.shared.error("Speech recognition error", error: error, category: .voiceCapture)
-                    self.currentError = AppError.voiceCapture(.transcriptionFailed)
+                    // Only log if it's not a "No speech detected" timeout (which is normal)
+                    if !error.localizedDescription.contains("No speech detected") {
+                        Task {
+                            await Logger.shared.error("Speech recognition error", error: error, category: .voiceCapture)
+                        }
+                    }
+                    
+                    // Only set error if transcription is empty (no partial results)
+                    if self.transcription.isEmpty {
+                        self.currentError = AppError.voiceCapture(.transcriptionFailed)
+                    }
                 }
             }
         }
         
-        inputNode.installTap(onBus: 0, bufferSize: 1024, format: recordingFormat) { buffer, _ in
+        // Remove any existing tap first
+        inputNode.removeTap(onBus: 0)
+        
+        // Install tap with better buffer size for speech recognition
+        inputNode.installTap(onBus: 0, bufferSize: 4096, format: recordingFormat) { buffer, when in
             recognitionRequest.append(buffer)
+            
+            // Debug: Check if we're getting audio samples
+            let samples = buffer.floatChannelData?[0]
+            let frameLength = Int(buffer.frameLength)
+            if frameLength > 0, let samples = samples {
+                var sum: Float = 0
+                for i in 0..<frameLength {
+                    sum += abs(samples[i])
+                }
+                let average = sum / Float(frameLength)
+                
+                // Only log if there's significant audio activity
+                if average > 0.01 {
+                    Task {
+                        await Logger.shared.debug("Audio detected - Average amplitude: \(average)", category: .voiceCapture)
+                    }
+                }
+            }
         }
         
         audioEngine.prepare()
@@ -333,13 +420,29 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         recordingTimer?.invalidate()
         recordingTimer = nil
         
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
+        // Stop audio engine and remove tap
+        if let audioEngine = audioEngine {
+            audioEngine.stop()
+            if audioEngine.inputNode.numberOfInputs > 0 {
+                audioEngine.inputNode.removeTap(onBus: 0)
+            }
+        }
         
+        // Clean up recognition task
         recognitionTask?.cancel()
         recognitionTask = nil
+        recognitionRequest?.endAudio()
         recognitionRequest = nil
         audioEngine = nil
+        
+        // Deactivate audio session
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            Task {
+                await Logger.shared.warning("Failed to deactivate audio session: \(error)", category: .voiceCapture)
+            }
+        }
     }
 }
 
