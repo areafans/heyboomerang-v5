@@ -9,14 +9,18 @@ type CaptureRequest = {
 
 type Task = {
   id: string
-  type: 'follow_up' | 'reminder' | 'campaign'
-  contactName: string
-  contactPhone?: string
-  contactEmail?: string
+  userId: string
+  captureId: string
+  type: 'follow_up_sms' | 'reminder_call' | 'campaign' | 'contact_crud' | 'email_send_reply'
+  status: 'pending' | 'approved' | 'skipped' | 'sent' | 'delivered' | 'failed'
+  contactId?: string
+  contactName?: string
   message: string
-  timing: 'immediate' | 'end_of_day' | 'tomorrow' | 'next_week'
-  status: 'pending' | 'approved' | 'skipped'
+  originalTranscription: string
+  scheduledFor?: string
   createdAt: string
+  archivedAt?: string
+  dismissedAt?: string
 }
 
 type CaptureResponse = {
@@ -440,17 +444,21 @@ EXAMPLES:
 
           console.log(`✅ Created ${taskData.task_type} task:`, dbTaskData.id)
 
-          // Add to response
+          // Add to response - match iOS AppTask structure
           tasks.push({
             id: dbTaskData.id,
+            userId: authUser.id,
+            captureId: captureData.id,
             type: dbTaskData.task_type as Task['type'],
-            contactName: dbTaskData.contact_name,
-            contactPhone: dbTaskData.contact_phone || undefined,
-            contactEmail: dbTaskData.contact_email || undefined,
-            message: dbTaskData.message,
-            timing: dbTaskData.timing as Task['timing'],
             status: dbTaskData.status as Task['status'],
-            createdAt: dbTaskData.created_at
+            contactId: dbTaskData.contact_id || undefined,
+            contactName: dbTaskData.contact_name || undefined,
+            message: dbTaskData.message,
+            originalTranscription: transcription, // Include original voice input
+            scheduledFor: dbTaskData.scheduled_for || undefined,
+            createdAt: dbTaskData.created_at,
+            archivedAt: undefined,
+            dismissedAt: undefined
           })
           
         } catch (toolError) {
