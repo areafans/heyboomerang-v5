@@ -270,7 +270,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         
         // Request permission if not already granted (iOS 17.0+)
         let _ = await withCheckedContinuation { continuation in
-            AVAudioApplication.requestRecordPermissionWithCompletionHandler { granted in
+            AVAudioApplication.requestRecordPermission { granted in
                 continuation.resume(returning: granted)
             }
         }
@@ -365,7 +365,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     func requestMicrophonePermission() async -> Result<Bool, AppError> {
         return await withCheckedContinuation { continuation in
             // Since we're iOS 17.0+, use the new AVAudioApplication API
-            AVAudioApplication.requestRecordPermissionWithCompletionHandler { granted in
+            AVAudioApplication.requestRecordPermission { granted in
                 if granted {
                     continuation.resume(returning: .success(true))
                 } else {
