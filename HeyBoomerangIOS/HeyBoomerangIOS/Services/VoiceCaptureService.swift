@@ -172,6 +172,9 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         // Clean up any previous session
         cleanup()
         
+        // Wait a moment for cleanup to complete
+        try? await Task.sleep(for: .milliseconds(100))
+        
         guard let speechRecognizer = speechRecognizer, speechRecognizer.isAvailable else {
             Logger.shared.error("Speech recognizer not available", category: .voiceCapture)
             let error = AppError.voiceCapture(.unavailable)
@@ -196,12 +199,13 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             await MainActor.run {
                 isRecording = true
                 transcription = "" // Clear any previous transcription
+                currentError = nil // Clear any previous errors
             }
             
             // Start timeout timer
             recordingTimer = Timer.scheduledTimer(withTimeInterval: configuration.maxRecordingDuration, repeats: false) { [weak self] _ in
                 Task {
-                    await self?.stopRecording()
+                    let _ = await self?.stopRecording()
                 }
             }
             
@@ -211,16 +215,21 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         } catch {
             Logger.shared.error("Failed to start recording", error: error, category: .voiceCapture)
             let appError = AppError.voiceCapture(.recordingFailed(error.localizedDescription))
-            currentError = appError
+            await MainActor.run {
+                currentError = appError
+            }
             return .failure(appError)
         }
     }
     
     private func stopRealRecording() async -> Result<String, AppError> {
+        // Prevent multiple calls to stop recording
         await MainActor.run {
+            guard isRecording else { return }
             isRecording = false
         }
         
+        // Cancel timer to prevent it from calling stop again
         recordingTimer?.invalidate()
         recordingTimer = nil
         
@@ -257,8 +266,12 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     // MARK: - Audio Setup
     
     private func setupSpeechRecognition() {
-        speechRecognizer = SFSpeechRecognizer(locale: Locale(identifier: "en-US"))
+        // Use the device's preferred locale, fallback to US English
+        let preferredLocale = Locale.preferredLanguages.first.flatMap { Locale(identifier: $0) } ?? Locale(identifier: "en-US")
+        speechRecognizer = SFSpeechRecognizer(locale: preferredLocale)
         speechRecognizer?.delegate = self
+        
+        Logger.shared.info("Speech recognizer set up with locale: \(preferredLocale.identifier)", category: .voiceCapture)
     }
     
     private func setupAudioSession() async throws {
@@ -307,7 +320,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         }
         
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            DispatchQueue.main.async {
+            Task { @MainActor in
                 guard let self = self else { return }
                 
                 if let result = result {
@@ -320,7 +333,8 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                 
                 if let error = error {
                     // Only log if it's not a "No speech detected" timeout (which is normal)
-                    if !error.localizedDescription.contains("No speech detected") {
+                    if !error.localizedDescription.contains("No speech detected") && 
+                       !error.localizedDescription.contains("kAFAssistantErrorDomain Code=1101") {
                         Logger.shared.error("Speech recognition error", error: error, category: .voiceCapture)
                     }
                     
