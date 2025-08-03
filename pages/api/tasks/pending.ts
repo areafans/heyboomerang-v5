@@ -78,8 +78,7 @@ export default async function handler(
         message,
         scheduled_for,
         status,
-        created_at,
-        captures(transcription)
+        created_at
       `)
       .eq('user_id', authUser.id)
       .eq('status', 'pending')
@@ -89,6 +88,18 @@ export default async function handler(
       console.error('Database error:', error)
       return res.status(500).json({ error: 'Database query failed' })
     }
+
+    // Get capture transcriptions separately to avoid join complexities
+    const captureIds = tasksData?.map(task => task.capture_id).filter(Boolean) || []
+    const { data: capturesData } = await supabaseAdmin
+      .from('captures')
+      .select('id, transcription')
+      .in('id', captureIds)
+
+    // Create a map of capture_id -> transcription
+    const captureMap = new Map(
+      (capturesData || []).map(capture => [capture.id, capture.transcription])
+    )
 
     console.log('📊 Raw tasks data from database:', JSON.stringify(tasksData, null, 2))
 
@@ -102,7 +113,7 @@ export default async function handler(
       contactId: task.contact_id || undefined,
       contactName: task.contact_name || undefined,
       message: task.message,
-      originalTranscription: task.captures?.transcription || '',
+      originalTranscription: captureMap.get(task.capture_id) || '',
       scheduledFor: task.scheduled_for || undefined,
       createdAt: task.created_at,
       archivedAt: undefined,
