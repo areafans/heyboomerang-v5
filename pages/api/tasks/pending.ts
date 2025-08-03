@@ -3,15 +3,18 @@ import { supabaseAdmin } from '@/lib/supabase'
 
 type Task = {
   id: string
-  type: 'follow_up' | 'reminder' | 'campaign'
-  contactName: string
-  contactPhone?: string
-  contactEmail?: string
+  userId: string
+  captureId: string
+  type: 'follow_up_sms' | 'reminder_call' | 'campaign' | 'contact_crud' | 'email_send_reply'
+  status: 'pending' | 'approved' | 'skipped' | 'sent' | 'delivered' | 'failed'
+  contactId?: string
+  contactName?: string
   message: string
-  timing: 'immediate' | 'end_of_day' | 'tomorrow' | 'next_week'
-  status: 'pending' | 'approved' | 'skipped'
+  originalTranscription: string
+  scheduledFor?: string
   createdAt: string
-  originalTranscription?: string
+  archivedAt?: string
+  dismissedAt?: string
 }
 
 type TaskStats = {
@@ -62,19 +65,21 @@ export default async function handler(
 
     console.log('📋 Fetching pending tasks for user:', authUser.id)
 
-    // Query pending tasks from database
+    // Query pending tasks from database - get all fields for iOS compatibility
     const { data: tasksData, error } = await supabaseAdmin
       .from('tasks')
       .select(`
         id,
-        task_type,
+        user_id,
+        capture_id,
+        contact_id,
         contact_name,
-        contact_phone,
-        contact_email,
+        task_type,
         message,
-        timing,
+        scheduled_for,
         status,
-        created_at
+        created_at,
+        captures!inner(transcription)
       `)
       .eq('user_id', authUser.id)
       .eq('status', 'pending')
@@ -85,18 +90,21 @@ export default async function handler(
       return res.status(500).json({ error: 'Database query failed' })
     }
 
-    // Transform database results to match API format
+    // Transform database results to match iOS AppTask format
     const tasks: Task[] = (tasksData || []).map(task => ({
       id: task.id,
+      userId: task.user_id,
+      captureId: task.capture_id,
       type: task.task_type as Task['type'],
-      contactName: task.contact_name,
-      contactPhone: task.contact_phone || undefined,
-      contactEmail: task.contact_email || undefined,
-      message: task.message,
-      timing: task.timing as Task['timing'],
       status: task.status as Task['status'],
+      contactId: task.contact_id || undefined,
+      contactName: task.contact_name || undefined,
+      message: task.message,
+      originalTranscription: task.captures?.transcription || '',
+      scheduledFor: task.scheduled_for || undefined,
       createdAt: task.created_at,
-      originalTranscription: undefined // Will fetch separately if needed
+      archivedAt: undefined,
+      dismissedAt: undefined
     }))
 
     // Get completed tasks today count for stats (optional enhancement)
@@ -109,7 +117,7 @@ export default async function handler(
 
     const stats: TaskStats = {
       total: tasks.length,
-      needsInfo: tasks.filter(t => !t.contactPhone && !t.contactEmail).length,
+      needsInfo: tasks.filter(t => !t.contactName).length, // Tasks without contact info
       completedToday: completedToday || 0
     }
 
