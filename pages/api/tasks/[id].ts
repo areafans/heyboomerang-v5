@@ -15,6 +15,23 @@ type TaskResponse = {
   task?: any
 }
 
+// Helper function to get user from authorization header
+async function getUserFromAuth(req: NextApiRequest) {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null
+  }
+
+  const token = authHeader.substring(7)
+  const { data: authUser, error } = await supabaseAdmin.auth.getUser(token)
+  
+  if (error || !authUser.user) {
+    return null
+  }
+
+  return authUser.user
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<TaskResponse | { error: string }>
@@ -27,11 +44,19 @@ export default async function handler(
 
   if (req.method === 'PUT') {
     try {
+      // Get authenticated user
+      const authUser = await getUserFromAuth(req)
+      if (!authUser) {
+        return res.status(401).json({ error: 'Unauthorized' })
+      }
+
       const { status, contactPhone, contactEmail, message, timing }: UpdateTaskRequest = req.body
 
       if (!status || !['approved', 'skipped'].includes(status)) {
         return res.status(400).json({ error: 'Invalid status' })
       }
+
+      console.log(`📝 Updating task ${id} to status: ${status} for user: ${authUser.id}`)
 
       // Build update object
       const updateData: any = {
@@ -74,11 +99,12 @@ export default async function handler(
         }
       }
 
-      // Update task in database
+      // Update task in database (ensure user owns the task)
       const { data, error } = await supabaseAdmin
         .from('tasks')
         .update(updateData)
         .eq('id', id)
+        .eq('user_id', authUser.id) // Security: ensure user owns the task
         .select()
         .single()
 

@@ -20,6 +20,23 @@ type PendingTasksResponse = {
   count: number
 }
 
+// Helper function to get user from authorization header
+async function getUserFromAuth(req: NextApiRequest) {
+  const authHeader = req.headers.authorization
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    return null
+  }
+
+  const token = authHeader.substring(7)
+  const { data: authUser, error } = await supabaseAdmin.auth.getUser(token)
+  
+  if (error || !authUser.user) {
+    return null
+  }
+
+  return authUser.user
+}
+
 export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse<PendingTasksResponse | { error: string }>
@@ -29,11 +46,13 @@ export default async function handler(
   }
 
   try {
-    const { userId } = req.query
-
-    if (!userId) {
-      return res.status(400).json({ error: 'Missing userId parameter' })
+    // Get authenticated user
+    const authUser = await getUserFromAuth(req)
+    if (!authUser) {
+      return res.status(401).json({ error: 'Unauthorized' })
     }
+
+    console.log('📋 Fetching pending tasks for user:', authUser.id)
 
     // Query pending tasks from database
     const { data: tasksData, error } = await supabaseAdmin
@@ -49,7 +68,7 @@ export default async function handler(
         status,
         created_at
       `)
-      .eq('user_id', userId)
+      .eq('user_id', authUser.id)
       .eq('status', 'pending')
       .order('created_at', { ascending: false })
 
