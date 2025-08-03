@@ -8,15 +8,23 @@
 import SwiftUI
 
 struct DashboardView: View {
-    // Mock AI performance data
-    @State private var monthlyRevenue = 18750
-    @State private var weeklyMessages = 23
-    @State private var aiSuccessRate = 0.89
-    @State private var responseRate = 0.34
-    @State private var aiLearningScore = 0.92
-    @State private var automationSavings = 12.5 // hours per week
+    @StateObject private var userService = DependencyContainer.shared.userService
     
-    private var userName = "Mike" // In real app, would come from user data
+    // Real metrics - will be fetched from backend later
+    @State private var monthlyRevenue = 0
+    @State private var weeklyMessages = 0
+    @State private var aiSuccessRate = 0.0
+    @State private var responseRate = 0.0
+    @State private var aiLearningScore = 0.0
+    @State private var automationSavings = 0.0 // hours per week
+    
+    // Get real user name from UserService
+    private var userName: String {
+        // Extract first name from business name or use fallback
+        let businessName = userService.currentUser?.businessName ?? "Your Business"
+        let components = businessName.components(separatedBy: " ")
+        return components.first ?? "there"
+    }
     
     var body: some View {
         NavigationView {
@@ -57,7 +65,30 @@ struct DashboardView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .onAppear {
+                Task {
+                    await loadDashboardMetrics()
+                }
+            }
         }
+    }
+    
+    // MARK: - Data Loading
+    private func loadDashboardMetrics() async {
+        print("🔄 Loading dashboard metrics...")
+        
+        // For now, show empty state since we don't have analytics backend yet
+        // In production, this would fetch real metrics from the backend
+        await MainActor.run {
+            monthlyRevenue = 0
+            weeklyMessages = 0
+            aiSuccessRate = 0.0
+            responseRate = 0.0
+            aiLearningScore = 0.0
+            automationSavings = 0.0
+        }
+        
+        print("✅ Dashboard metrics loaded (empty for now)")
     }
     
     // MARK: - At a Glance Section

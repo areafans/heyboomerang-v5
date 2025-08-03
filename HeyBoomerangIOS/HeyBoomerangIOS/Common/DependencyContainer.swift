@@ -44,14 +44,14 @@ final class DependencyContainer: ObservableObject {
         
         // Create network services
         _networkManager = NetworkManager(configuration: _appConfiguration)
-        _apiService = APIService(networkManager: _networkManager, configuration: _appConfiguration)
+        _apiService = APIService(networkManager: _networkManager, configuration: _appConfiguration, authService: SupabaseAuthService.shared)
         
         // Create voice capture service
         _voiceCaptureService = VoiceCaptureService(configuration: _appConfiguration)
         
         // Create business services
         _taskService = TaskService(apiService: _apiService, storage: _secureStorage)
-        _userService = UserService(apiService: _apiService, storage: _secureStorage)
+        _userService = UserService(apiService: _apiService, storage: _secureStorage, authService: SupabaseAuthService.shared)
     }
 }
 
@@ -139,12 +139,10 @@ final class AppConfiguration: AppConfigurationProtocol {
     
     var apiBaseURL: String {
         switch environment {
-        case .development:
-            return "https://dev-api.heyboomerang.com/api"
-        case .staging:
-            return "https://staging-api.heyboomerang.com/api"
+        case .development, .staging:
+            return "https://heyboomerang-v5.vercel.app/api"
         case .production:
-            return "https://api.heyboomerang.com/api"
+            return "https://heyboomerang-v5.vercel.app/api"
         }
     }
     

@@ -13,15 +13,19 @@ import Foundation
 final class APIService: APIServiceProtocol, ObservableObject {
     private let networkManager: NetworkManagerProtocol
     private let configuration: AppConfigurationProtocol
+    private let authService: SupabaseAuthService
     
-    init(networkManager: NetworkManagerProtocol, configuration: AppConfigurationProtocol) {
+    init(networkManager: NetworkManagerProtocol, configuration: AppConfigurationProtocol, authService: SupabaseAuthService = SupabaseAuthService.shared) {
         self.networkManager = networkManager
         self.configuration = configuration
+        self.authService = authService
     }
     
     // MARK: - Capture API
     
     func submitCapture(transcription: String, duration: TimeInterval) async -> Result<CaptureResponse, AppError> {
+        print("🌐 API: Submitting capture to backend...")
+        print("🔑 API: Auth token available: \(authService.accessToken != nil)")
         await Logger.shared.info("Submitting capture with transcription length: \(transcription.count)", category: .api)
         
         guard let url = URL.apiURL(path: "capture", configuration: configuration) else {
@@ -37,7 +41,7 @@ final class APIService: APIServiceProtocol, ObservableObject {
             encoder.keyEncodingStrategy = .convertToSnakeCase
             
             let bodyData = try encoder.encode(requestBody)
-            let request = URLRequest.apiRequest(url: url, method: .POST, body: bodyData)
+            let request = URLRequest.apiRequest(url: url, method: .POST, body: bodyData, authToken: authService.accessToken)
             
             return await networkManager.performRequest(request, responseType: CaptureResponse.self)
                 .logError(message: "Failed to submit capture", category: .api)
@@ -51,6 +55,9 @@ final class APIService: APIServiceProtocol, ObservableObject {
     // MARK: - Tasks API
     
     func getPendingTasks() async -> Result<TasksResponse, AppError> {
+        print("🌐 API: Fetching tasks from backend...")
+        print("🔑 API: Auth token available: \(authService.accessToken != nil)")
+        print("🎯 API: Backend URL: \(configuration.apiBaseURL)")
         await Logger.shared.info("Fetching pending tasks", category: .api)
         
         guard let url = URL.apiURL(path: "tasks/pending", configuration: configuration) else {
@@ -58,7 +65,7 @@ final class APIService: APIServiceProtocol, ObservableObject {
             return .failure(.network(.invalidURL("tasks/pending endpoint")))
         }
         
-        let request = URLRequest.apiRequest(url: url, method: .GET)
+        let request = URLRequest.apiRequest(url: url, method: .GET, authToken: authService.accessToken)
         
         return await networkManager.performRequest(request, responseType: TasksResponse.self)
             .logError(message: "Failed to fetch pending tasks", category: .api)
@@ -80,7 +87,7 @@ final class APIService: APIServiceProtocol, ObservableObject {
             encoder.keyEncodingStrategy = .convertToSnakeCase
             
             let bodyData = try encoder.encode(requestBody)
-            let request = URLRequest.apiRequest(url: url, method: .PUT, body: bodyData)
+            let request = URLRequest.apiRequest(url: url, method: .PUT, body: bodyData, authToken: authService.accessToken)
             
             return await networkManager.performRequest(request)
                 .logError(message: "Failed to update task \(id)", category: .api)

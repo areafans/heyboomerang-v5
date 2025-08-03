@@ -23,29 +23,11 @@ struct HeyBoomerangIOSApp: App {
                 .task {
                     await initializeApp()
                 }
-                .onOpenURL { url in
-                    handleIncomingURL(url)
-                }
+                // Removed URL handling since we're using email/password auth
         }
     }
     
-    // MARK: - URL Handling
-    
-    private func handleIncomingURL(_ url: URL) {
-        print("Received URL: \(url)")
-        
-        // Handle auth callback
-        if url.scheme == "boomerang" && url.host == "auth" {
-            Task {
-                do {
-                    try await authService.handleAuthCallback(url: url)
-                    await Logger.shared.info("Successfully handled auth callback", category: .general)
-                } catch {
-                    await Logger.shared.error("Failed to handle auth callback", error: error, category: .general)
-                }
-            }
-        }
-    }
+    // Removed URL handling methods since we're using email/password auth
     
     // MARK: - App Initialization
     

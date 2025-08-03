@@ -8,12 +8,30 @@
 import SwiftUI
 
 struct ProfileView: View {
-    // Mock user data
-    @State private var userName = "Mike Thompson"
-    @State private var businessName = "Thompson Construction"
-    @State private var businessDescription = "General contracting company specializing in home renovations and kitchen remodels"
-    @State private var subscriptionStatus = "7-day free trial"
-    @State private var trialDaysRemaining = 5
+    @StateObject private var userService = DependencyContainer.shared.userService
+    
+    // Computed properties from real user data
+    private var userName: String {
+        userService.currentUser?.businessName ?? "Loading..."
+    }
+    
+    private var businessName: String {
+        userService.currentUser?.businessName ?? "My Business"  
+    }
+    
+    private var businessDescription: String {
+        // User model doesn't have businessDescription, use businessType as fallback
+        userService.currentUser?.businessType ?? "Service Business"
+    }
+    
+    private var subscriptionStatus: String {
+        userService.currentUser?.subscriptionStatus == "trial" ? "7-day free trial" : "Active subscription"
+    }
+    
+    private var trialDaysRemaining: Int {
+        // TODO: Calculate from trialEndsAt
+        7
+    }
     
     var body: some View {
         NavigationView {

@@ -6,6 +6,15 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		000FCB852E3E9CD600AE243D /* Auth in Frameworks */ = {isa = PBXBuildFile; productRef = 000FCB842E3E9CD600AE243D /* Auth */; };
+		000FCB872E3E9CD600AE243D /* Functions in Frameworks */ = {isa = PBXBuildFile; productRef = 000FCB862E3E9CD600AE243D /* Functions */; };
+		000FCB892E3E9CD600AE243D /* PostgREST in Frameworks */ = {isa = PBXBuildFile; productRef = 000FCB882E3E9CD600AE243D /* PostgREST */; };
+		000FCB8B2E3E9CD600AE243D /* Realtime in Frameworks */ = {isa = PBXBuildFile; productRef = 000FCB8A2E3E9CD600AE243D /* Realtime */; };
+		000FCB8D2E3E9CD600AE243D /* Storage in Frameworks */ = {isa = PBXBuildFile; productRef = 000FCB8C2E3E9CD600AE243D /* Storage */; };
+		000FCB922E3EA1BB00AE243D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = 000FCB912E3EA1BB00AE243D /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		000FC8282E3C26B700AE243D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +38,22 @@
 		000FC8312E3C26B700AE243D /* HeyBoomerangIOSUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HeyBoomerangIOSUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		000FCB8F2E3E9D2900AE243D /* Exceptions for "HeyBoomerangIOS" folder in "HeyBoomerangIOS" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 000FC8192E3C26B400AE243D /* HeyBoomerangIOS */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		000FC81C2E3C26B400AE243D /* HeyBoomerangIOS */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				000FCB8F2E3E9D2900AE243D /* Exceptions for "HeyBoomerangIOS" folder in "HeyBoomerangIOS" target */,
+			);
 			path = HeyBoomerangIOS;
 			sourceTree = "<group>";
 		};
@@ -52,6 +74,12 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				000FCB892E3E9CD600AE243D /* PostgREST in Frameworks */,
+				000FCB872E3E9CD600AE243D /* Functions in Frameworks */,
+				000FCB922E3EA1BB00AE243D /* Supabase in Frameworks */,
+				000FCB852E3E9CD600AE243D /* Auth in Frameworks */,
+				000FCB8D2E3E9CD600AE243D /* Storage in Frameworks */,
+				000FCB8B2E3E9CD600AE243D /* Realtime in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +106,7 @@
 				000FC81C2E3C26B400AE243D /* HeyBoomerangIOS */,
 				000FC82A2E3C26B700AE243D /* HeyBoomerangIOSTests */,
 				000FC8342E3C26B700AE243D /* HeyBoomerangIOSUITests */,
+				000FCB902E3EA1BB00AE243D /* Frameworks */,
 				000FC81B2E3C26B400AE243D /* Products */,
 			);
 			sourceTree = "<group>";
@@ -90,6 +119,13 @@
 				000FC8312E3C26B700AE243D /* HeyBoomerangIOSUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		000FCB902E3EA1BB00AE243D /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,6 +148,12 @@
 			);
 			name = HeyBoomerangIOS;
 			packageProductDependencies = (
+				000FCB842E3E9CD600AE243D /* Auth */,
+				000FCB862E3E9CD600AE243D /* Functions */,
+				000FCB882E3E9CD600AE243D /* PostgREST */,
+				000FCB8A2E3E9CD600AE243D /* Realtime */,
+				000FCB8C2E3E9CD600AE243D /* Storage */,
+				000FCB912E3EA1BB00AE243D /* Supabase */,
 			);
 			productName = HeyBoomerangIOS;
 			productReference = 000FC81A2E3C26B400AE243D /* HeyBoomerangIOS.app */;
@@ -195,6 +237,9 @@
 			);
 			mainGroup = 000FC8112E3C26B400AE243D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 000FC81B2E3C26B400AE243D /* Products */;
 			projectDirPath = "";
@@ -400,6 +445,7 @@
 				DEVELOPMENT_TEAM = 4SHXG4632G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HeyBoomerangIOS/Info.plist;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "HeyBoomerang needs microphone access to capture voice notes that will be converted into actionable tasks for your business communications.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "HeyBoomerang uses speech recognition to convert your voice notes into text for generating automated business messages and reminders.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -430,6 +476,7 @@
 				DEVELOPMENT_TEAM = 4SHXG4632G;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = HeyBoomerangIOS/Info.plist;
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "HeyBoomerang needs microphone access to capture voice notes that will be converted into actionable tasks for your business communications.";
 				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "HeyBoomerang uses speech recognition to convert your voice notes into text for generating automated business messages and reminders.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -562,6 +609,50 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		000FCB842E3E9CD600AE243D /* Auth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Auth;
+		};
+		000FCB862E3E9CD600AE243D /* Functions */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Functions;
+		};
+		000FCB882E3E9CD600AE243D /* PostgREST */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = PostgREST;
+		};
+		000FCB8A2E3E9CD600AE243D /* Realtime */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Realtime;
+		};
+		000FCB8C2E3E9CD600AE243D /* Storage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Storage;
+		};
+		000FCB912E3EA1BB00AE243D /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 000FCB832E3E9CD600AE243D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 000FC8122E3C26B400AE243D /* Project object */;
 }

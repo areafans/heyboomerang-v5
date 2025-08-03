@@ -44,7 +44,7 @@ struct OnboardingContainerView: View {
                         }
                 
                 case .emailAuth:
-                    EmailAuthView(isCompleted: $emailAuthCompleted, onboardingData: onboardingData)
+                    EmailPasswordAuthView(isCompleted: $emailAuthCompleted, onboardingData: onboardingData)
                         .onChange(of: emailAuthCompleted) { _, completed in
                             if completed {
                                 withAnimation {

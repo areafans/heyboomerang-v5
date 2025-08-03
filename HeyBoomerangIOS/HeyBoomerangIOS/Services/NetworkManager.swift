@@ -179,11 +179,17 @@ extension URLRequest {
         url: URL,
         method: HTTPMethod = .GET,
         body: Data? = nil,
-        additionalHeaders: [String: String] = [:]
+        additionalHeaders: [String: String] = [:],
+        authToken: String? = nil
     ) -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = method.rawValue
         request.httpBody = body
+        
+        // Add authentication header if token is provided
+        if let token = authToken {
+            request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        }
         
         // Add additional headers
         for (key, value) in additionalHeaders {

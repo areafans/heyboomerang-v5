@@ -8,14 +8,18 @@
 import SwiftUI
 
 struct SummaryView: View {
-    // Mock data for previous day's completed actions
-    @State private var completedMessages = [
-        CompletedMessage(contactName: "Johnson Family", type: "Follow-up SMS", status: "Delivered", sentAt: Date().addingTimeInterval(-3600), response: nil),
-        CompletedMessage(contactName: "Miller Family", type: "Follow-up SMS", status: "Read", sentAt: Date().addingTimeInterval(-7200), response: "Yes, let's schedule next week!"),
-        CompletedMessage(contactName: "Supplier - ABC Materials", type: "Call Reminder", status: "Delivered", sentAt: Date().addingTimeInterval(-10800), response: nil)
-    ]
+    @StateObject private var userService = DependencyContainer.shared.userService
     
-    private var userName: String = "Mike" // In real app, would come from user data
+    // Real data - will be empty initially, populated from backend later
+    @State private var completedMessages: [CompletedMessage] = []
+    
+    // Get real user name from UserService
+    private var userName: String {
+        // Extract first name from business name or use fallback
+        let businessName = userService.currentUser?.businessName ?? "there"
+        let components = businessName.components(separatedBy: " ")
+        return components.first ?? "there"
+    }
     
     var body: some View {
         NavigationView {
@@ -65,7 +69,12 @@ struct SummaryView: View {
             .toolbarBackground(.regularMaterial, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .refreshable {
-                // Simulate refresh - in real app would fetch new data
+                await loadCompletedMessages()
+            }
+            .onAppear {
+                Task {
+                    await loadCompletedMessages()
+                }
             }
         }
     }
@@ -171,6 +180,19 @@ struct SummaryView: View {
     private var deliveryRate: Int {
         let delivered = completedMessages.filter { $0.status != "Failed" }.count
         return completedMessages.isEmpty ? 0 : Int((Double(delivered) / Double(completedMessages.count)) * 100)
+    }
+    
+    // MARK: - Data Loading
+    private func loadCompletedMessages() async {
+        print("🔄 Loading completed messages...")
+        
+        // For now, show empty state since we don't have message delivery backend yet
+        // In production, this would fetch completed messages from the backend
+        await MainActor.run {
+            completedMessages = []
+        }
+        
+        print("✅ Completed messages loaded (empty for now)")
     }
 }
 

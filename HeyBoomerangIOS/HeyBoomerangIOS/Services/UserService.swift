@@ -7,24 +7,138 @@
 
 import Foundation
 
+// MARK: - Profile API Response Models
+
+struct ProfileAPIResponse: Codable {
+    let success: Bool
+    let user: ProfileAPIUser?
+    let message: String
+}
+
+struct ProfileAPIUser: Codable {
+    let id: String
+    let email: String
+    let businessName: String?
+    let businessType: String?
+    let businessDescription: String?
+    let phoneNumber: String?
+    let timezone: String?
+    let subscriptionStatus: String
+    let trialEndsAt: String?
+    let createdAt: String
+    let updatedAt: String
+}
+
 // MARK: - User Management Service
 
 final class UserService: UserServiceProtocol, ObservableObject {
     private let apiService: APIServiceProtocol
     private let storage: SecureStorageProtocol
+    private let authService: SupabaseAuthService
     
     @Published var currentUser: User?
     @Published var isAuthenticated = false
     @Published var isLoading = false
     @Published var lastError: AppError?
     
-    init(apiService: APIServiceProtocol, storage: SecureStorageProtocol) {
+    init(apiService: APIServiceProtocol, storage: SecureStorageProtocol, authService: SupabaseAuthService = SupabaseAuthService.shared) {
         self.apiService = apiService
         self.storage = storage
+        self.authService = authService
+        
+        // Listen to auth state changes
+        setupAuthListener()
         
         // Load cached user on initialization
         Task {
             await loadCachedUser()
+        }
+    }
+    
+    private func setupAuthListener() {
+        // Listen to SupabaseAuthService authentication changes
+        Task {
+            // Use a timer to periodically check auth state
+            // This is a simple approach - in production you'd use Combine publishers
+            while true {
+                await MainActor.run {
+                    let wasAuthenticated = isAuthenticated
+                    isAuthenticated = authService.isAuthenticated
+                    
+                    // If authentication state changed, fetch user profile
+                    if !wasAuthenticated && isAuthenticated {
+                        Task {
+                            await fetchUserProfile()
+                        }
+                    } else if wasAuthenticated && !isAuthenticated {
+                        // User logged out
+                        currentUser = nil
+                    }
+                }
+                
+                try? await Task.sleep(nanoseconds: 1_000_000_000) // Check every 1 second
+            }
+        }
+    }
+    
+    private func fetchUserProfile() async {
+        guard authService.isAuthenticated else { return }
+        
+        await Logger.shared.info("Fetching user profile from backend", category: .api)
+        
+        // Call backend API to get user profile
+        guard let url = URL(string: "https://heyboomerang-v5.vercel.app/api/user/profile") else {
+            await Logger.shared.error("Invalid profile URL", category: .api)
+            return
+        }
+        
+        guard let accessToken = authService.accessToken else {
+            await Logger.shared.error("No access token available", category: .api)
+            return
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let httpResponse = response as? HTTPURLResponse {
+                print("👤 User profile fetch response: \(httpResponse.statusCode)")
+                
+                if httpResponse.statusCode == 200 {
+                    // Parse the user profile
+                    let decoder = JSONDecoder()
+                    let profileResponse = try decoder.decode(ProfileAPIResponse.self, from: data)
+                    
+                    if let userProfile = profileResponse.user {
+                        // Convert String ID to UUID (Supabase uses UUID strings)
+                        let userId = UUID(uuidString: userProfile.id) ?? UUID()
+                        
+                        let user = User(
+                            id: userId,
+                            email: userProfile.email,
+                            businessName: userProfile.businessName ?? "My Business",
+                            businessType: userProfile.businessType ?? "Service Business",
+                            timezone: userProfile.timezone ?? "America/New_York",
+                            subscriptionStatus: userProfile.subscriptionStatus
+                        )
+                        
+                        await MainActor.run {
+                            self.currentUser = user
+                        }
+                        
+                        // Cache the user
+                        try? await storage.store(user, forKey: "current_user")
+                        
+                        await Logger.shared.info("User profile loaded: \(user.email)", category: .api)
+                    }
+                }
+            }
+        } catch {
+            await Logger.shared.error("Failed to fetch user profile", error: error, category: .api)
         }
     }
     

@@ -12,6 +12,7 @@ struct TasksView: View {
     @State private var pendingTasks: [AppTask] = []
     @State private var showingCardView = false
     @State private var selectedTaskIndex = 0
+    @StateObject private var taskService = DependencyContainer.shared.taskService
     
     var body: some View {
         NavigationView {
@@ -90,55 +91,31 @@ struct TasksView: View {
                 )
             }
             .onAppear {
-                loadMockTasks()
+                loadRealTasks()
             }
         }
     }
     
-    private func loadMockTasks() {
-        pendingTasks = [
-            AppTask(
-                userId: UUID(),
-                captureId: UUID(),
-                type: .followUpSMS,
-                contactName: "Johnson Family",
-                message: "Thanks for letting us work on your kitchen demo today! The project is off to a great start. We'll be back tomorrow morning to continue.",
-                originalTranscription: "Just finished the kitchen demo at the Johnson house"
-            ),
-            AppTask(
-                userId: UUID(),
-                captureId: UUID(),
-                type: .reminderCall,
-                contactName: "Supplier - ABC Materials",
-                message: "Call supplier about drywall delivery for Williams project",
-                originalTranscription: "Need to order drywall for the Williams project next week"
-            ),
-            AppTask(
-                userId: UUID(),
-                captureId: UUID(),
-                type: .campaign,
-                contactName: "All Past Clients",
-                message: "Spring renovation special - 15% off all kitchen and bathroom projects through May!",
-                originalTranscription: "Running a spring special next month"
-            ),
-            AppTask(
-                userId: UUID(),
-                captureId: UUID(),
-                type: .contactCRUD,
-                contactName: "John Smith",
-                message: "Add new client: John Smith, phone: 555-0123, interested in deck renovation",
-                originalTranscription: "Add new client John Smith 555-0123 deck project"
-            ),
-            AppTask(
-                userId: UUID(),
-                captureId: UUID(),
-                type: .emailSendReply,
-                contactName: "Miller Family",
-                message: "Reply to Miller family about deck project timeline and material selection",
-                originalTranscription: "Need to reply to the Millers about their deck timeline"
-            )
-        ]
-        pendingTasksCount = pendingTasks.count
+    private func loadRealTasks() {
+        print("🔄 Loading real tasks from TaskService...")
+        
+        Task {
+            let result = await taskService.loadPendingTasks()
+            
+            await MainActor.run {
+                switch result {
+                case .success(let tasks):
+                    print("✅ Loaded \(tasks.count) real tasks")
+                    pendingTasks = tasks
+                    pendingTasksCount = tasks.count
+                case .failure(let error):
+                    print("❌ Failed to load tasks: \(error)")
+                    // For now, show empty state instead of mock data
+                    pendingTasks = []
+                    pendingTasksCount = 0
+                }
+            }
+        }
     }
 }
 

@@ -35,10 +35,10 @@ final class SupabaseAuthService: ObservableObject {
     
     private func setupAuthListener() {
         Task {
-            for await state in client.auth.authStateChanges {
+            for await (_, session) in client.auth.authStateChanges {
                 await MainActor.run {
-                    self.currentSession = state.session
-                    self.isAuthenticated = state.session != nil
+                    self.currentSession = session
+                    self.isAuthenticated = session != nil
                 }
             }
         }
@@ -46,16 +46,13 @@ final class SupabaseAuthService: ObservableObject {
     
     // MARK: - Authentication Methods
     
-    func signInWithMagicLink(email: String) async throws {
+    func signUpWithEmail(email: String, password: String) async throws {
         await MainActor.run {
             isLoading = true
         }
         
         do {
-            try await client.auth.signInWithOTP(
-                email: email,
-                redirectTo: URL(string: "boomerang://auth/callback")
-            )
+            try await client.auth.signUp(email: email, password: password)
             
             await MainActor.run {
                 isLoading = false
@@ -68,10 +65,26 @@ final class SupabaseAuthService: ObservableObject {
         }
     }
     
-    func handleAuthCallback(url: URL) async throws {
-        // Handle the callback from magic link
-        try await client.auth.session(from: url)
+    func signInWithEmail(email: String, password: String) async throws {
+        await MainActor.run {
+            isLoading = true
+        }
+        
+        do {
+            try await client.auth.signIn(email: email, password: password)
+            
+            await MainActor.run {
+                isLoading = false
+            }
+        } catch {
+            await MainActor.run {
+                isLoading = false
+            }
+            throw error
+        }
     }
+    
+    // Remove old magic link callback method since we're not using it anymore
     
     func signOut() async throws {
         try await client.auth.signOut()
@@ -83,7 +96,7 @@ final class SupabaseAuthService: ObservableObject {
         return currentSession?.accessToken
     }
     
-    var user: User? {
+    var user: Supabase.User? {
         return currentSession?.user
     }
     
