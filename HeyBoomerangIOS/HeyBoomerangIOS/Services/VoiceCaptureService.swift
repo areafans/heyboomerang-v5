@@ -227,42 +227,74 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     
     private func stopRealRecording() async -> Result<String, AppError> {
         // Prevent multiple calls to stop recording
-        await MainActor.run {
-            guard isRecording else { return }
+        let wasRecording = await MainActor.run {
+            guard isRecording else { return false }
             isRecording = false
+            return true
+        }
+        
+        guard wasRecording else {
+            Logger.shared.debug("Stop recording called but not currently recording", category: .voiceCapture)
+            return .success(transcription) // Return whatever transcription we have
         }
         
         // Cancel timer to prevent it from calling stop again
         recordingTimer?.invalidate()
         recordingTimer = nil
         
-        // Stop audio engine gracefully
-        audioEngine?.stop()
+        // IMPORTANT: Don't stop audio engine immediately - let speech recognition finish
         recognitionRequest?.endAudio()
         
-        Logger.shared.debug("Stopping recording, current transcription: '\(transcription)'", category: .voiceCapture)
+        // Capture current transcription state before we start waiting
+        let currentTranscription = await MainActor.run { transcription }
+        Logger.shared.debug("Stopping recording, current transcription: '\(currentTranscription)'", category: .voiceCapture)
         
-        // Wait for final transcription result with longer timeout
+        // Wait for final transcription result - give speech recognition time to process
         return await withCheckedContinuation { continuation in
-            // If we already have a transcription result, return it immediately
-            if !transcription.isEmpty {
-                Logger.shared.info("Returning existing transcription: '\(self.transcription)'", category: .voiceCapture)
-                continuation.resume(returning: .success(transcription))
-                return
-            }
+            // Check multiple times with shorter intervals for better responsiveness
+            var checkCount = 0
+            let maxChecks = 8 // Check 8 times over 2 seconds
             
-            // Otherwise wait longer for the final result (speech recognition can be slow)
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                if !self.transcription.isEmpty {
-                    Logger.shared.info("Final transcription after wait: '\(self.transcription)'", category: .voiceCapture)
-                    continuation.resume(returning: .success(self.transcription))
-                } else {
-                    Logger.shared.warning("No transcription available after timeout", category: .voiceCapture)
-                    let error = AppError.voiceCapture(.transcriptionFailed)
-                    self.currentError = error
-                    continuation.resume(returning: .failure(error))
+            func checkForFinalTranscription() {
+                Task { @MainActor in
+                    let latestTranscription = self.transcription
+                    checkCount += 1
+                    
+                    Logger.shared.debug("Check \(checkCount): transcription = '\(latestTranscription)'", category: .voiceCapture)
+                    
+                    // If we have transcription, return it
+                    if !latestTranscription.isEmpty {
+                        Logger.shared.info("Final transcription found: '\(latestTranscription)'", category: .voiceCapture)
+                        
+                        // Now stop the audio engine
+                        self.audioEngine?.stop()
+                        
+                        continuation.resume(returning: .success(latestTranscription))
+                        return
+                    }
+                    
+                    // If we've checked enough times, give up
+                    if checkCount >= maxChecks {
+                        Logger.shared.warning("No transcription available after \(maxChecks) checks", category: .voiceCapture)
+                        
+                        // Stop the audio engine
+                        self.audioEngine?.stop()
+                        
+                        let error = AppError.voiceCapture(.transcriptionFailed)
+                        self.currentError = error
+                        continuation.resume(returning: .failure(error))
+                        return
+                    }
+                    
+                    // Check again in 250ms
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        checkForFinalTranscription()
+                    }
                 }
             }
+            
+            // Start checking
+            checkForFinalTranscription()
         }
     }
     

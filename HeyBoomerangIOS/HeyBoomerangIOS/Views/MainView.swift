@@ -9,11 +9,14 @@ import SwiftUI
 
 struct VoiceCaptureView: View {
     @StateObject private var voiceService = DependencyContainer.shared.voiceCaptureService
+    @StateObject private var apiService = DependencyContainer.shared.apiService
     @State private var showingReview = false
     @State private var dailyCaptureCount = 7
     @State private var pendingTasksCount = 12
     @State private var tasksNeedingInfo = 3
     @State private var isPressed = false
+    @State private var isProcessing = false
+    @State private var lastTranscription = ""
     private let maxDailyCaptures = 32
     
     var body: some View {
@@ -66,7 +69,7 @@ struct VoiceCaptureView: View {
                         .onLongPressGesture(minimumDuration: 0.1, maximumDistance: 50) {
                             // Long press completed
                             Task {
-                                await voiceService.stopRecording()
+                                await stopRecordingAndProcess()
                             }
                             isPressed = false
                         } onPressingChanged: { pressing in
@@ -75,7 +78,7 @@ struct VoiceCaptureView: View {
                                 startRecording()
                             } else if voiceService.isRecording {
                                 Task {
-                                    await voiceService.stopRecording()
+                                    await stopRecordingAndProcess()
                                 }
                                 isPressed = false
                             }
@@ -83,9 +86,9 @@ struct VoiceCaptureView: View {
                         .sensoryFeedback(.impact(flexibility: .soft), trigger: isPressed)
                         
                         // Instruction Text
-                        Text(voiceService.isRecording ? "Recording... Release to stop" : "Hold to capture")
+                        Text(getStatusText())
                             .font(.subheadline)
-                            .foregroundColor(voiceService.isRecording ? .red : .secondary)
+                            .foregroundColor(getStatusColor())
                             .fontWeight(.medium)
                             .animation(.easeInOut, value: voiceService.isRecording)
                     }
@@ -128,7 +131,71 @@ struct VoiceCaptureView: View {
     
     private func startRecording() {
         Task {
-            await voiceService.startRecording()
+            let result = await voiceService.startRecording()
+            if case .failure(let error) = result {
+                print("❌ Failed to start recording: \(error)")
+            }
+        }
+    }
+    
+    private func stopRecordingAndProcess() async {
+        isProcessing = true
+        
+        let result = await voiceService.stopRecording()
+        
+        switch result {
+        case .success(let transcription):
+            print("✅ Recording stopped successfully with transcription: '\(transcription)'")
+            lastTranscription = transcription
+            
+            // Send transcription to backend for task processing
+            if !transcription.isEmpty {
+                await processTranscription(transcription)
+            }
+            
+        case .failure(let error):
+            print("❌ Failed to stop recording: \(error)")
+        }
+        
+        isProcessing = false
+    }
+    
+    private func processTranscription(_ transcription: String) async {
+        print("🚀 Processing transcription: '\(transcription)'")
+        
+        let result = await apiService.submitCapture(transcription: transcription, duration: 5.0)
+        
+        switch result {
+        case .success(let response):
+            print("✅ Successfully submitted capture to backend")
+            print("📝 Capture ID: \(response.captureId)")
+            
+            if let tasks = response.suggestedTasks {
+                print("🎯 Generated \(tasks.count) suggested tasks")
+            }
+            
+        case .failure(let error):
+            print("❌ Failed to submit capture: \(error)")
+        }
+    }
+    
+    private func getStatusText() -> String {
+        if isProcessing {
+            return "Processing..."
+        } else if voiceService.isRecording {
+            return "Recording... Release to stop"
+        } else {
+            return "Hold to capture"
+        }
+    }
+    
+    private func getStatusColor() -> Color {
+        if isProcessing {
+            return .orange
+        } else if voiceService.isRecording {
+            return .red
+        } else {
+            return .secondary
         }
     }
 }
