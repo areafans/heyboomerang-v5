@@ -57,26 +57,24 @@ final class UserService: UserServiceProtocol, ObservableObject {
     
     private func setupAuthListener() {
         // Listen to SupabaseAuthService authentication changes
-        Task {
+        Task { @MainActor in
             // Use a timer to periodically check auth state
             // This is a simple approach - in production you'd use Combine publishers
             while true {
-                await MainActor.run {
-                    let wasAuthenticated = isAuthenticated
-                    isAuthenticated = authService.isAuthenticated
-                    
-                    // If authentication state changed, fetch user profile
-                    if !wasAuthenticated && isAuthenticated {
-                        Task {
-                            await fetchUserProfile()
-                        }
-                    } else if wasAuthenticated && !isAuthenticated {
-                        // User logged out
-                        currentUser = nil
+                let wasAuthenticated = isAuthenticated
+                isAuthenticated = authService.isAuthenticated
+                
+                // If authentication state changed, fetch user profile
+                if !wasAuthenticated && isAuthenticated {
+                    Task {
+                        await fetchUserProfile()
                     }
+                } else if wasAuthenticated && !isAuthenticated {
+                    // User logged out
+                    currentUser = nil
                 }
                 
-                try? await Task.sleep(nanoseconds: 1_000_000_000) // Check every 1 second
+                try? await Task.sleep(for: .seconds(1)) // Check every 1 second
             }
         }
     }

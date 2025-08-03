@@ -262,9 +262,9 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         }
         
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
+            guard let self = self else { return }
+            
             Task { @MainActor in
-                guard let self = self else { return }
-                
                 if let result = result {
                     self.transcription = result.bestTranscription.formattedString
                     
@@ -350,7 +350,7 @@ extension VoiceCaptureService: SFSpeechRecognizerDelegate {
         Task { @MainActor in
             if !available {
                 await Logger.shared.warning("Speech recognizer became unavailable", category: .voiceCapture)
-                currentError = AppError.voiceCapture(.unavailable)
+                self.currentError = AppError.voiceCapture(.unavailable)
             }
         }
     }
