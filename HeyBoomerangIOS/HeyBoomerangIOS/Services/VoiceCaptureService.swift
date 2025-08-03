@@ -45,7 +45,10 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     init(configuration: AppConfigurationProtocol? = nil) {
         self.configuration = configuration ?? AppConfiguration()
         super.init()
-        setupSpeechRecognition()
+        
+        // Don't set up speech recognizer immediately - wait for authorization
+        // This prevents iOS 17+ authorization timing issues
+        Logger.shared.debug("VoiceCaptureService initialized, waiting for authorization before setting up speech recognizer", category: .voiceCapture)
     }
     
     deinit {
@@ -266,6 +269,13 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     // MARK: - Audio Setup
     
     private func setupSpeechRecognition() {
+        // IMPORTANT: Only instantiate SFSpeechRecognizer after authorization is confirmed
+        // This prevents iOS 17+ authorization timing issues
+        guard SFSpeechRecognizer.authorizationStatus() == .authorized else {
+            Logger.shared.warning("Speech recognition not authorized yet, deferring setup", category: .voiceCapture)
+            return
+        }
+        
         // Use the device's preferred locale, fallback to US English
         let preferredLocale = Locale.preferredLanguages.first.flatMap { Locale(identifier: $0) } ?? Locale(identifier: "en-US")
         speechRecognizer = SFSpeechRecognizer(locale: preferredLocale)
@@ -305,6 +315,9 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         recognitionRequest?.shouldReportPartialResults = true
         
+        // CRITICAL: Use on-device recognition to avoid iOS 17+ server-side bugs
+        recognitionRequest?.requiresOnDeviceRecognition = true
+        
         // Configure for better speech detection
         if #available(iOS 16.0, *) {
             recognitionRequest?.addsPunctuation = true
@@ -324,22 +337,36 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                 guard let self = self else { return }
                 
                 if let result = result {
-                    self.transcription = result.bestTranscription.formattedString
+                    let newTranscription = result.bestTranscription.formattedString
+                    
+                    // Only update if we have actual text (iOS 17+ bug workaround)
+                    if !newTranscription.isEmpty {
+                        self.transcription = newTranscription
+                        Logger.shared.debug("Updated transcription: '\(newTranscription)'", category: .voiceCapture)
+                    }
                     
                     if result.isFinal {
-                        Logger.shared.info("Final transcription: \(self.transcription)", category: .voiceCapture)
+                        Logger.shared.info("Final transcription: '\(self.transcription)'", category: .voiceCapture)
                     }
                 }
                 
                 if let error = error {
-                    // Only log if it's not a "No speech detected" timeout (which is normal)
-                    if !error.localizedDescription.contains("No speech detected") && 
-                       !error.localizedDescription.contains("kAFAssistantErrorDomain Code=1101") {
+                    let errorCode = (error as NSError).code
+                    let errorDomain = (error as NSError).domain
+                    
+                    // Filter out known spurious iOS 17+ errors
+                    if errorDomain == "kAFAssistantErrorDomain" && (errorCode == 1101 || errorCode == 1107) {
+                        Logger.shared.debug("Ignoring spurious iOS 17+ speech recognition error: \(errorCode)", category: .voiceCapture)
+                        return
+                    }
+                    
+                    // Only log real errors
+                    if !error.localizedDescription.contains("No speech detected") {
                         Logger.shared.error("Speech recognition error", error: error, category: .voiceCapture)
                     }
                     
-                    // Only set error if transcription is empty (no partial results)
-                    if self.transcription.isEmpty {
+                    // Only set error if transcription is empty AND it's not a spurious error
+                    if self.transcription.isEmpty && !(errorDomain == "kAFAssistantErrorDomain" && errorCode == 1101) {
                         self.currentError = AppError.voiceCapture(.transcriptionFailed)
                     }
                 }
@@ -391,9 +418,11 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     
     func requestSpeechRecognitionPermission() async -> Result<Bool, AppError> {
         return await withCheckedContinuation { continuation in
-            SFSpeechRecognizer.requestAuthorization { status in
+            SFSpeechRecognizer.requestAuthorization { [weak self] status in
                 switch status {
                 case .authorized:
+                    // NOW set up speech recognizer after authorization is confirmed
+                    self?.setupSpeechRecognition()
                     continuation.resume(returning: .success(true))
                 case .denied, .restricted, .notDetermined:
                     continuation.resume(returning: .failure(.voiceCapture(.permissionDenied)))
@@ -407,6 +436,8 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     // MARK: - Cleanup
     
     private func cleanup() {
+        Logger.shared.debug("Cleaning up voice capture session", category: .voiceCapture)
+        
         recordingTimer?.invalidate()
         recordingTimer = nil
         
@@ -418,16 +449,23 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             }
         }
         
-        // Clean up recognition task
-        recognitionTask?.cancel()
-        recognitionTask = nil
-        recognitionRequest?.endAudio()
-        recognitionRequest = nil
+        // IMPORTANT: Proper task cancellation pattern for iOS 17+
+        if let task = recognitionTask {
+            task.cancel()
+            recognitionTask = nil
+        }
+        
+        if let request = recognitionRequest {
+            request.endAudio()
+            recognitionRequest = nil
+        }
+        
         audioEngine = nil
         
         // Deactivate audio session
         do {
             try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+            Logger.shared.debug("Audio session deactivated", category: .voiceCapture)
         } catch {
             Logger.shared.warning("Failed to deactivate audio session: \(error)", category: .voiceCapture)
         }
