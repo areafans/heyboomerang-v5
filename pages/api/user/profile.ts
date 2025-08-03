@@ -122,6 +122,57 @@ export default async function handler(
         message: 'Profile retrieved successfully'
       })
 
+    } else if (req.method === 'POST') {
+      // Create new user profile
+      const { email, businessName, businessType, businessDescription } = req.body
+
+      if (!email || !businessName) {
+        return res.status(400).json({ error: 'Email and business name are required' })
+      }
+
+      const { data: newUser, error: createError } = await supabaseAdmin
+        .from('users')
+        .insert({
+          id: authUser.id,
+          email: email.toLowerCase().trim(),
+          business_name: businessName,
+          business_type: businessType || 'Service Business',
+          business_description: businessDescription || '',
+          phone_number: null,
+          timezone: 'America/New_York',
+          subscription_status: 'trial',
+          trial_ends_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select()
+        .single()
+
+      if (createError) {
+        console.error('User creation error:', createError)
+        return res.status(500).json({ error: 'Failed to create user profile' })
+      }
+
+      const profile: UserProfile = {
+        id: newUser.id,
+        email: newUser.email,
+        businessName: newUser.business_name,
+        businessType: newUser.business_type,
+        businessDescription: newUser.business_description,
+        phoneNumber: newUser.phone_number,
+        timezone: newUser.timezone,
+        subscriptionStatus: newUser.subscription_status,
+        trialEndsAt: newUser.trial_ends_at,
+        createdAt: newUser.created_at,
+        updatedAt: newUser.updated_at
+      }
+
+      res.status(201).json({
+        success: true,
+        user: profile,
+        message: 'User profile created successfully'
+      })
+
     } else if (req.method === 'PUT') {
       // Update user profile
       const updateData: UpdateProfileRequest = req.body
