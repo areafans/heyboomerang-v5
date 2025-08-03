@@ -24,6 +24,7 @@ struct AppTask: Codable, Identifiable {
     
     enum TaskType: String, Codable, CaseIterable {
         case followUpSMS = "follow_up_sms"
+        case reminder = "reminder"
         case reminderCall = "reminder_call"
         case campaign = "campaign"
         case contactCRUD = "contact_crud"
@@ -32,6 +33,7 @@ struct AppTask: Codable, Identifiable {
         var displayName: String {
             switch self {
             case .followUpSMS: return "Follow-up SMS"
+            case .reminder: return "Reminder"
             case .reminderCall: return "Call Reminder"
             case .campaign: return "Campaign"
             case .contactCRUD: return "Contact Update"
@@ -42,6 +44,7 @@ struct AppTask: Codable, Identifiable {
         var color: String {
             switch self {
             case .followUpSMS: return "blue"
+            case .reminder: return "yellow"
             case .reminderCall: return "orange"
             case .campaign: return "purple"
             case .contactCRUD: return "green"
@@ -52,6 +55,7 @@ struct AppTask: Codable, Identifiable {
         var icon: String {
             switch self {
             case .followUpSMS: return "message.fill"
+            case .reminder: return "bell.fill"
             case .reminderCall: return "phone.fill"
             case .campaign: return "megaphone.fill"
             case .contactCRUD: return "person.badge.plus.fill"
@@ -62,6 +66,7 @@ struct AppTask: Codable, Identifiable {
         var actionButtonText: String {
             switch self {
             case .followUpSMS: return "Send SMS"
+            case .reminder: return "Mark Done"
             case .reminderCall: return "Set Reminder"
             case .campaign: return "Start Campaign"
             case .contactCRUD: return "Update Contact"

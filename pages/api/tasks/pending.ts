@@ -5,7 +5,7 @@ type Task = {
   id: string
   userId: string
   captureId: string
-  type: 'follow_up_sms' | 'reminder_call' | 'campaign' | 'contact_crud' | 'email_send_reply'
+  type: 'follow_up_sms' | 'reminder' | 'reminder_call' | 'campaign' | 'contact_crud' | 'email_send_reply'
   status: 'pending' | 'approved' | 'skipped' | 'sent' | 'delivered' | 'failed'
   contactId?: string
   contactName?: string

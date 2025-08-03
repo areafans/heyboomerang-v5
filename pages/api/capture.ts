@@ -11,7 +11,7 @@ type Task = {
   id: string
   userId: string
   captureId: string
-  type: 'follow_up_sms' | 'reminder_call' | 'campaign' | 'contact_crud' | 'email_send_reply'
+  type: 'follow_up_sms' | 'reminder' | 'reminder_call' | 'campaign' | 'contact_crud' | 'email_send_reply'
   status: 'pending' | 'approved' | 'skipped' | 'sent' | 'delivered' | 'failed'
   contactId?: string
   contactName?: string
@@ -91,7 +91,7 @@ function convertFunctionCallToTask(functionName: string, args: any, userId: stri
       
     case 'create_reminder':
       return {
-        task_type: 'reminder_call', // Proper iOS TaskType enum value
+        task_type: 'reminder', // General reminder, not specifically a call
         contact_name: 'Business Owner',
         contact_phone: null,
         contact_email: null,
@@ -102,7 +102,7 @@ function convertFunctionCallToTask(functionName: string, args: any, userId: stri
       
     case 'make_phone_call':
       return {
-        task_type: 'follow_up_sms', // Use existing enum value for now
+        task_type: 'reminder_call', // This is actually a call reminder
         contact_name: args.contactName,
         contact_phone: null, // Will be resolved during task execution
         contact_email: null,
