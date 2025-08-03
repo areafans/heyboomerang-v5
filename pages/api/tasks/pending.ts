@@ -14,10 +14,18 @@ type Task = {
   originalTranscription?: string
 }
 
+type TaskStats = {
+  total: number
+  needsInfo: number
+  completedToday?: number
+  averageResponseTime?: number
+}
+
 type PendingTasksResponse = {
-  success: boolean
-  tasks: Task[]
-  count: number
+  active: Task[]
+  archived: Task[]
+  stats: TaskStats
+  lastSyncedAt?: string
 }
 
 // Helper function to get user from authorization header
@@ -91,10 +99,25 @@ export default async function handler(
       originalTranscription: undefined // Will fetch separately if needed
     }))
 
+    // Get completed tasks today count for stats (optional enhancement)
+    const { count: completedToday } = await supabaseAdmin
+      .from('tasks')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', authUser.id)
+      .eq('status', 'approved')
+      .gte('approved_at', new Date().toISOString().split('T')[0]) // Today
+
+    const stats: TaskStats = {
+      total: tasks.length,
+      needsInfo: tasks.filter(t => !t.contactPhone && !t.contactEmail).length,
+      completedToday: completedToday || 0
+    }
+
     res.status(200).json({
-      success: true,
-      tasks,
-      count: tasks.length
+      active: tasks,
+      archived: [], // Empty for now - could add archived tasks later
+      stats,
+      lastSyncedAt: new Date().toISOString()
     })
 
   } catch (error) {
