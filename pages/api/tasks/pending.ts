@@ -79,7 +79,7 @@ export default async function handler(
         scheduled_for,
         status,
         created_at,
-        captures!inner(transcription)
+        captures(transcription)
       `)
       .eq('user_id', authUser.id)
       .eq('status', 'pending')
@@ -89,6 +89,8 @@ export default async function handler(
       console.error('Database error:', error)
       return res.status(500).json({ error: 'Database query failed' })
     }
+
+    console.log('📊 Raw tasks data from database:', JSON.stringify(tasksData, null, 2))
 
     // Transform database results to match iOS AppTask format
     const tasks: Task[] = (tasksData || []).map(task => ({
@@ -120,6 +122,9 @@ export default async function handler(
       needsInfo: tasks.filter(t => !t.contactName).length, // Tasks without contact info
       completedToday: completedToday || 0
     }
+
+    console.log('🔄 Transformed tasks for iOS:', JSON.stringify(tasks, null, 2))
+    console.log('📈 Task stats:', stats)
 
     res.status(200).json({
       active: tasks,
