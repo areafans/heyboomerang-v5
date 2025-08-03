@@ -128,6 +128,38 @@ struct TasksResponse: Codable {
     let archived: [AppTask]
     let stats: TaskStats
     let lastSyncedAt: Date?
+    
+    enum CodingKeys: String, CodingKey {
+        case active, archived, stats, lastSyncedAt
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        self.active = try container.decode([AppTask].self, forKey: .active)
+        self.archived = try container.decode([AppTask].self, forKey: .archived)
+        self.stats = try container.decode(TaskStats.self, forKey: .stats)
+        
+        // Handle lastSyncedAt string-to-Date conversion
+        if let lastSyncedAtString = try container.decodeIfPresent(String.self, forKey: .lastSyncedAt) {
+            let dateFormatter = ISO8601DateFormatter()
+            self.lastSyncedAt = dateFormatter.date(from: lastSyncedAtString)
+        } else {
+            self.lastSyncedAt = nil
+        }
+    }
+    
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        
+        try container.encode(active, forKey: .active)
+        try container.encode(archived, forKey: .archived)
+        try container.encode(stats, forKey: .stats)
+        
+        if let lastSyncedAt = lastSyncedAt {
+            try container.encode(lastSyncedAt.formatted(.iso8601), forKey: .lastSyncedAt)
+        }
+    }
 }
 
 struct TaskStats: Codable {
@@ -135,6 +167,19 @@ struct TaskStats: Codable {
     let needsInfo: Int
     let completedToday: Int?
     let averageResponseTime: TimeInterval?
+    
+    enum CodingKeys: String, CodingKey {
+        case total, needsInfo, completedToday, averageResponseTime
+    }
+    
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        
+        self.total = try container.decode(Int.self, forKey: .total)
+        self.needsInfo = try container.decode(Int.self, forKey: .needsInfo)
+        self.completedToday = try container.decodeIfPresent(Int.self, forKey: .completedToday)
+        self.averageResponseTime = try container.decodeIfPresent(TimeInterval.self, forKey: .averageResponseTime)
+    }
 }
 
 struct UpdateTaskRequest: Codable {
