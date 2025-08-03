@@ -54,7 +54,7 @@ function convertFunctionCallToTask(functionName: string, args: any, userId: stri
   switch (functionName) {
     case 'create_contact':
       return {
-        task_type: 'create_contact',
+        task_type: 'contact_crud', // Match iOS TaskType enum
         contact_name: args.name,
         contact_phone: args.phone?.trim() || null,
         contact_email: args.email?.trim() || null,
@@ -65,7 +65,7 @@ function convertFunctionCallToTask(functionName: string, args: any, userId: stri
       
     case 'send_sms':
       return {
-        task_type: 'send_sms',
+        task_type: 'follow_up_sms', // Match iOS TaskType enum
         contact_name: args.contactName,
         contact_phone: null, // Will be resolved during task execution
         contact_email: null,
@@ -76,7 +76,7 @@ function convertFunctionCallToTask(functionName: string, args: any, userId: stri
       
     case 'send_email':
       return {
-        task_type: 'send_email', 
+        task_type: 'email_send_reply', // Match iOS TaskType enum
         contact_name: args.contactName,
         contact_phone: null,
         contact_email: null, // Will be resolved during task execution
@@ -87,19 +87,18 @@ function convertFunctionCallToTask(functionName: string, args: any, userId: stri
       
     case 'create_reminder':
       return {
-        task_type: 'reminder',
+        task_type: 'reminder_call', // Proper iOS TaskType enum value
         contact_name: 'Business Owner',
         contact_phone: null,
         contact_email: null,
         message: args.task,
         timing,
-        delivery_method: 'internal',
-        priority: args.priority || 'medium'
+        delivery_method: 'internal'
       }
       
     case 'make_phone_call':
       return {
-        task_type: 'make_phone_call',
+        task_type: 'follow_up_sms', // Use existing enum value for now
         contact_name: args.contactName,
         contact_phone: null, // Will be resolved during task execution
         contact_email: null,
@@ -110,14 +109,13 @@ function convertFunctionCallToTask(functionName: string, args: any, userId: stri
       
     case 'create_note':
       return {
-        task_type: 'create_note',
+        task_type: 'contact_crud', // Use existing enum value for notes
         contact_name: 'Business Owner',
         contact_phone: null,
         contact_email: null,
-        message: `${args.title}: ${args.content}`,
+        message: `Note: ${args.title} - ${args.content}`,
         timing: 'immediate',
-        delivery_method: 'internal',
-        tags: args.tags
+        delivery_method: 'internal'
       }
       
     default:
@@ -434,7 +432,9 @@ EXAMPLES:
             .single()
 
           if (taskError) {
-            console.error('Failed to store task:', taskError)
+            console.error(`❌ Failed to store ${taskData.task_type} task:`, taskError)
+            console.error('Task data that failed:', taskData)
+            console.error('Database error details:', taskError.message, taskError.code, taskError.details)
             continue
           }
 
@@ -490,8 +490,7 @@ EXAMPLES:
         .eq('id', captureData.id)
       
       return res.status(500).json({ 
-        error: 'AI processing failed', 
-        details: openaiError?.message || 'Unknown OpenAI error'
+        error: `AI processing failed: ${openaiError?.message || 'Unknown OpenAI error'}`
       })
     }
 

@@ -13,8 +13,8 @@ import SwiftUI
 
 // MARK: - Modern Voice Capture Service with iOS 17+ @Observable
 
-final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, ObservableObject, @unchecked Sendable {
-    // Observable properties
+final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, ObservableObject {
+    // Observable properties - must be updated on main thread
     @Published var isRecording = false
     @Published var transcription = ""
     @Published var currentError: AppError?
@@ -103,15 +103,19 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
     func startRecording() async -> Result<Void, AppError> {
         Logger.shared.info("Starting voice recording", category: .voiceCapture)
         
-        // Clear previous state
-        currentError = nil
-        transcription = ""
+        // Clear previous state on main thread
+        await MainActor.run {
+            currentError = nil
+            transcription = ""
+        }
         
         // Check permissions first - don't request, just check
         let hasPermissions = await checkPermissions()
         guard hasPermissions else {
             let error = AppError.voiceCapture(.permissionDenied)
-            currentError = error
+            await MainActor.run {
+                currentError = error
+            }
             return .failure(error)
         }
         
@@ -200,9 +204,9 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
             try await setupAudioEngine()
             
             await MainActor.run {
-                isRecording = true
-                transcription = "" // Clear any previous transcription
-                currentError = nil // Clear any previous errors
+                self.isRecording = true
+                self.transcription = "" // Clear any previous transcription
+                self.currentError = nil // Clear any previous errors
             }
             
             // Start timeout timer
@@ -379,7 +383,7 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
         }
         
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in
-            Task { @MainActor in
+            Task {
                 guard let self = self else { return }
                 
                 if let result = result {
@@ -387,13 +391,9 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                     
                     // Only update if we have actual text (iOS 17+ bug workaround)
                     if !newTranscription.isEmpty {
-                        // Ensure UI updates happen on MainActor
-                        if Thread.isMainThread {
+                        // Update transcription on main thread
+                        await MainActor.run {
                             self.transcription = newTranscription
-                        } else {
-                            DispatchQueue.main.async {
-                                self.transcription = newTranscription
-                            }
                         }
                         Logger.shared.debug("Updated transcription: '\(newTranscription)'", category: .voiceCapture)
                     }
@@ -420,7 +420,9 @@ final class VoiceCaptureService: NSObject, VoiceCaptureServiceProtocol, Observab
                     
                     // Only set error if transcription is empty AND it's not a spurious error
                     if self.transcription.isEmpty && !(errorDomain == "kAFAssistantErrorDomain" && errorCode == 1101) {
-                        self.currentError = AppError.voiceCapture(.transcriptionFailed)
+                        await MainActor.run {
+                            self.currentError = AppError.voiceCapture(.transcriptionFailed)
+                        }
                     }
                 }
             }
