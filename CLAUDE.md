@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+<!-- Last updated: 2025-08-07 -->
+
 ## 📋 **MUST READ: Complete Project Documentation**
 
 **For comprehensive project details, architecture, and requirements, see:**
